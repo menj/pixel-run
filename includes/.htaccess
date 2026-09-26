@@ -1,0 +1,6 @@
+# Pixel Run — internal includes only.
+# These files are required by index.php and the API endpoints.
+# Direct browser access is denied.
+
+Require all denied
+Options -Indexes

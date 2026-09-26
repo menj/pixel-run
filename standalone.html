@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Run — Standalone</title>
+<!--
+  Pixel Run without PHP or MySQL.
+
+  This page links the same assets/css/style.css, assets/js/sprites.js and
+  assets/js/game.js that index.php uses, so the game engine is defined in
+  one place. It works from any static host and also when opened directly
+  from disk (file://), as long as the assets/ directory sits beside it.
+
+  The JSON block below tells the engine there is no API; it makes no
+  network requests other than the Google Fonts stylesheet.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="stage">
+  <header>
+    <h1>PIXEL • RUN</h1>
+    <span class="subtitle">STANDALONE EDITION</span>
+  </header>
+
+  <div class="toolbar">
+    <div class="char-picker" role="tablist" aria-label="Choose character">
+      <button class="char-btn active" data-char="dino" type="button">
+        <span class="char-emoji">🦖</span>
+        <span class="char-label">DINO</span>
+      </button>
+      <button class="char-btn" data-char="cat" type="button">
+        <span class="char-emoji">🐱</span>
+        <span class="char-label">CAT</span>
+      </button>
+    </div>
+    <div class="toolbar-right">
+      <button id="sound-btn" class="sound-btn" type="button"
+              aria-pressed="false" title="Sound on — click to mute">
+        <span class="sound-icon">🔊</span>
+      </button>
+      <!-- No backend here: the mode toggle and leaderboard stay hidden.
+           They remain in the DOM because game.js binds to them. -->
+      <button id="mode-btn" class="mode-btn offline" type="button" hidden>
+        <span class="mode-icon">📴</span>
+        <span class="mode-label">OFFLINE</span>
+      </button>
+      <button id="lb-open" class="lb-btn" type="button" hidden>
+        <span class="lb-icon">🏆</span>
+        <span>LEADERBOARD</span>
+      </button>
+    </div>
+  </div>
+  <p id="mode-note" class="mode-note" hidden></p>
+
+  <div class="frame">
+    <div class="scoreboard">
+      <span><span class="label">HI</span><span class="hi" id="hi">00000</span></span>
+      <span><span class="label">SC</span><span class="cur" id="sc">00000</span></span>
+    </div>
+    <canvas id="game" width="960" height="320"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="overlay-card">
+        <h2 id="ov-title">PRESS SPACE TO PLAY</h2>
+        <p id="ov-sub" class="pulse">Jump the cacti. Duck the birds.</p>
+        <div id="ov-submit" class="ov-submit" hidden>
+          <label class="ov-name-label" for="ov-name">YOUR NAME</label>
+          <div class="ov-name-row">
+            <input id="ov-name" type="text" maxlength="20" autocomplete="off"
+                   placeholder="PLAYER" spellcheck="false">
+            <button id="ov-send" type="button">SUBMIT</button>
+          </div>
+          <p id="ov-status" class="ov-status"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lb-modal" id="lb-modal" hidden>
+    <div class="lb-card">
+      <header class="lb-header">
+        <h2>🏆 LEADERBOARD</h2>
+        <button id="lb-close" class="lb-close" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="lb-tabs" role="tablist">
+        <button class="lb-tab active" data-filter="all" type="button">ALL</button>
+        <button class="lb-tab" data-filter="dino" type="button">🦖 DINO</button>
+        <button class="lb-tab" data-filter="cat" type="button">🐱 CAT</button>
+      </div>
+      <div class="lb-list" id="lb-list"></div>
+      <p class="lb-foot" id="lb-foot"></p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <span><strong>SPACE</strong> jump</span>
+    <span><strong>↓</strong> duck</span>
+    <span><strong>R</strong> restart</span>
+    <span><strong>M</strong> mute</span>
+    <span><strong class="accent-bomb">🎁 PINK</strong> bomb</span>
+    <span><strong class="accent-shield">🎁 BLUE</strong> shield</span>
+  </div>
+
+  <p class="footer-mark">DNS_PROBE_FINISHED_NO_INTERNET</p>
+</div>
+
+<script type="application/json" id="pixel-run-config">{"apiAvailable":false}</script>
+<script src="assets/js/sprites.js"></script>
+<script src="assets/js/game.js"></script>
+
+</body>
+</html>

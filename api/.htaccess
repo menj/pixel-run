@@ -1,0 +1,15 @@
+# Pixel Run — API directory
+#
+# Endpoints: get-scores.php (GET) and submit-score.php (POST).
+# Shared PHP lives in ../includes/ and is denied there.
+
+# Disable directory listing
+Options -Indexes
+
+# Defensive: stop browsers sniffing JSON responses as HTML.
+# Guarded so a host without mod_headers does not return 500 for every request.
+<IfModule mod_headers.c>
+  <FilesMatch "\.php$">
+    Header set X-Content-Type-Options "nosniff"
+  </FilesMatch>
+</IfModule>
