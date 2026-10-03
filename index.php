@@ -129,6 +129,14 @@ $assetVersion = h((string)$cfg['version']);
         <span class="char-emoji">🐱</span>
         <span class="char-label">CAT</span>
       </button>
+      <button class="char-btn" data-char="penguin" type="button">
+        <span class="char-emoji">🐧</span>
+        <span class="char-label">PENGUIN</span>
+      </button>
+      <button class="char-btn" data-char="robot" type="button">
+        <span class="char-emoji">🤖</span>
+        <span class="char-label">ROBOT</span>
+      </button>
     </div>
     <div class="toolbar-right">
       <button id="sound-btn" class="sound-btn" type="button"
@@ -159,6 +167,10 @@ $assetVersion = h((string)$cfg['version']);
     <div class="overlay" id="overlay">
       <div class="overlay-card">
         <h2 id="ov-title">PRESS SPACE TO PLAY</h2>
+        <div id="ov-result" class="ov-result" hidden>
+          <span id="ov-medal" class="ov-medal" hidden><span class="medal-disc"></span><span class="medal-label"></span></span>
+          <span id="ov-best" class="ov-best" hidden>NEW BEST</span>
+        </div>
         <p id="ov-sub" class="pulse">Jump the cacti. Duck the birds.</p>
         <div id="ov-submit" class="ov-submit" hidden>
           <label class="ov-name-label" for="ov-name">YOUR NAME</label>
@@ -185,6 +197,8 @@ $assetVersion = h((string)$cfg['version']);
         <button class="lb-tab active" data-filter="all" type="button">ALL</button>
         <button class="lb-tab" data-filter="dino" type="button">🦖 DINO</button>
         <button class="lb-tab" data-filter="cat" type="button">🐱 CAT</button>
+        <button class="lb-tab" data-filter="penguin" type="button">🐧 PENGUIN</button>
+        <button class="lb-tab" data-filter="robot" type="button">🤖 ROBOT</button>
       </div>
       <div class="lb-list" id="lb-list"></div>
       <p class="lb-foot" id="lb-foot"></p>

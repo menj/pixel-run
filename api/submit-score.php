@@ -6,7 +6,7 @@
  *   {
  *     "name":         "PLAYER",
  *     "score":        1234,
- *     "character":    "dino" | "cat",
+ *     "character":    "dino" | "cat" | "penguin" | "robot",
  *     "obstacles":    42,
  *     "duration_ms":  67000
  *   }

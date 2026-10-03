@@ -7,6 +7,10 @@
     --accent: #FF3CAC;
     --accent-2: #784BA0;
     --accent-3: #2B86C5;
+    --medal-bronze: #CD7F32;
+    --medal-silver: #C9D1D9;
+    --medal-gold: #FFD700;
+    --best-badge: var(--accent);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,6 +41,7 @@
 
   body {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     place-items: center;
     padding: 24px;
   }
@@ -85,6 +90,7 @@
 
   .char-picker {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
     padding: 4px;
@@ -486,6 +492,12 @@
     outline-offset: 2px;
   }
 
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    .char-btn { padding: 8px 12px; gap: 6px; font-size: 10px; }
+    .char-btn .char-emoji { font-size: 16px; }
+  }
+
   canvas {
     display: block;
     width: 100%;
@@ -562,6 +574,42 @@
     font-size: 12px;
     color: #FFD700;
     margin: 0 4px;
+  }
+
+  .ov-result {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .ov-medal {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #f0e6ff;
+  }
+  .medal-disc {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--medal-color, var(--medal-bronze));
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25), 0 0 12px var(--medal-color, var(--medal-bronze));
+  }
+  .ov-medal[data-tier="bronze"] { --medal-color: var(--medal-bronze); }
+  .ov-medal[data-tier="silver"] { --medal-color: var(--medal-silver); }
+  .ov-medal[data-tier="gold"]   { --medal-color: var(--medal-gold); }
+  .ov-best {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--best-badge);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
   }
 
   .controls {

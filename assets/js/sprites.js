@@ -17,98 +17,87 @@
   var SCALE = 2;
 
   /* ---------- dino (T-rex), 22 x 22 ---------- */
+  // Big head with an open, toothy jaw, a stout upright body, tiny
+  // forearms and thick legs, so it reads as a T-rex rather than a lizard.
   var DINO_PALETTE = {
     d: '#5A8B3A', // sage body
+    g: '#46722C', // darker back spots
     l: '#A4C964', // lime belly
     e: '#DBDB30', // eye
     w: '#FFFFFF', // tooth
     '#': '#0F1F0F',
   };
 
-  var DINO_UPPER = [
-    'dd....................',
-    'ddd...................',
-    'dddd.......ddddd......',
-    '.ddddddddddddddd......',
-    '..dddddddddddlll......',
-    '...ddddddddddllldd....',
-    '....dddddddddlll.d....',
-    '....ddddddddllll......',
-    '....ddddddllllll......',
-    '....ddddllllllll......',
-    '.....dddlllllll.......',
+  // rows 0..15: head, neck, body, tail; rows 16..21: legs
+  var DINO_BODY = [
+    '.........ddddddddddd..',
+    '........dddddddddddddd',
+    '........dddddeeddddddd',
+    '........ddddde#ddddddd',
+    '........dddddddddddddd',
+    '.......ddddddd#w#w#w#w',
+    '.......dddddddddddd...',
+    '......dddddddddd......',
+    '....dddgddddddlll.....',
+    '..dddddddgddddllll....',
+    '.dddgdddddddlllldd....',
+    'ddddddddddddlllld.....',
+    'dddddddddddllllll.....',
+    '.ddddddddddllllll.....',
+    '..dddddddddlllll......',
+    '....dddddddddddd......',
   ];
-  var DINO_HEAD = [
-    '.............dddddddd.',
-    '............ddeedddddd',
-    '............dde#dddddd',
-    '............dddddddd#d',
-    '............dddd######',
-    '............ddddddwdd.',
-    '............dddddddd..',
-  ];
-  // rows 0..6 head, 7..15 upper body/tail, 16..21 legs
   var DINO_LEGS = {
     stand: [
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '......ddd..ddd........',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
       '.....ddddd.ddddd......',
       '.....ddddd.ddddd......',
     ],
     runA: [
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '......ddd...dddd......',
-      '......ddd...dddd......',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '.....dddd...dddd......',
+      '.....dddd...dddd......',
       '.....ddddd............',
       '.....ddddd............',
     ],
     runB: [
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '.....dddd..ddd........',
-      '.....dddd..ddd........',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '....dddd...dddd.......',
+      '....dddd...dddd.......',
       '...........ddddd......',
       '...........ddddd......',
     ],
   };
 
   function dinoFrame(legs) {
-    // head rows 0..6 merged with the tail rows that share them (rows 5,6)
-    var rows = [];
-    rows.push(DINO_HEAD[0]);
-    rows.push(DINO_HEAD[1]);
-    rows.push(DINO_HEAD[2]);
-    rows.push(DINO_HEAD[3]);
-    rows.push(DINO_HEAD[4]);
-    rows.push(merge(DINO_HEAD[5], DINO_UPPER[0]));
-    rows.push(merge(DINO_HEAD[6], DINO_UPPER[1]));
-    for (var i = 2; i < DINO_UPPER.length; i++) rows.push(DINO_UPPER[i]);
-    return rows.concat(legs);
+    return DINO_BODY.concat(legs);
   }
 
   /* ---------- dino ducking, 30 x 12 ---------- */
   var DINO_DUCK_BODY = [
-    '.....................dddddddd.',
-    '....................ddeedddddd',
-    '....................dde#dddddd',
-    '....dddddddddddddddddddddddd#d',
-    '...ddddddddddddddddddddd######',
-    '.ddddddddddddddddddddddddwdd..',
-    'ddddddddddddddddddllllddddddd.',
-    '.dddddddddllllllllllll........',
-    '...dddddlllllllllllll.........',
-    '.....dddllllllllllll..........',
+    '..................dddddddddddd',
+    '..................dddeeddddddd',
+    '..................ddde#ddddddd',
+    '..................dddddddddddd',
+    '...ddddddddddddddddd#w#w#w#w#w',
+    '.dddddddddddddddddddd.........',
+    'ddddddddddddlllllllll.........',
+    '.ddddddddddlllllllllll........',
+    '..dddddddddllllllllll.........',
+    '....dddddddddddddd............',
   ];
   var DINO_DUCK_LEGS = {
     a: [
-      '.......ddd.....ddd............',
+      '.......ddd....ddd.............',
       '......ddddd...................',
     ],
     b: [
-      '.......ddd.....ddd............',
+      '.......ddd....ddd.............',
       '..............ddddd...........',
     ],
   };
@@ -192,6 +181,225 @@
       '...............llll...........',
     ],
   };
+
+  /* ---------- penguin ---------- */
+  var PENGUIN_PALETTE = {
+    k: '#2B2D42',
+    w: '#FFFFFF',
+    o: '#F4A261',
+    '#': '#0F1020',
+  };
+  var PENGUIN_STAND = [
+    '.......kkkkkkk........',
+    '.....kkkkkkkkkkk......',
+    '....kkkkkkkkkkkkk.....',
+    '....kkkkkkkkwwkkk.....',
+    '....kkkkkkkkw#kkoooo..',
+    '....kkkkkkkkkkkkooo...',
+    '.....kkkkkkkkkkkk.....',
+    '....kkkkwwwwwwkkkk....',
+    '...kkkkwwwwwwwwkkkk...',
+    '..kkkkkwwwwwwwwwkkk...',
+    '.kkkkkkwwwwwwwwwwkkk..',
+    '.kkkkkkwwwwwwwwwwkk...',
+    '.kkkkkkwwwwwwwwwwk....',
+    '..kkkkkwwwwwwwwwk.....',
+    '...kkkkkwwwwwwwkk.....',
+    '....kkkkkwwwwkkkk.....',
+    '.....kkkkkkkkkk.......',
+    '.....kkkkkkkkkk.......',
+    '.......oo..oo.........',
+    '.......oo..oo.........',
+    '......ooo..ooo........',
+    '......oooo.oooo.......',
+  ];
+  var PENGUIN_RUNA = [
+    '.......kkkkkkk........',
+    '.....kkkkkkkkkkk......',
+    '....kkkkkkkkkkkkk.....',
+    '....kkkkkkkkwwkkk.....',
+    '....kkkkkkkkw#kkoooo..',
+    '....kkkkkkkkkkkkooo...',
+    '.....kkkkkkkkkkkk.....',
+    '....kkkkwwwwwwkkkk....',
+    '...kkkkwwwwwwwwkkkk...',
+    '..kkkkkwwwwwwwwwkkk...',
+    '.kkkkkkwwwwwwwwwwkkk..',
+    '.kkkkkkwwwwwwwwwwkk...',
+    '.kkkkkkwwwwwwwwwwk....',
+    '..kkkkkwwwwwwwwwk.....',
+    '...kkkkkwwwwwwwkk.....',
+    '....kkkkkwwwwkkkk.....',
+    '.....kkkkkkkkkk.......',
+    '.....kkkkkkkkkk.......',
+    '.......oo..oo.........',
+    '.......oo...oo........',
+    '......ooo...ooo.......',
+    '......oooo..oooo......',
+  ];
+  var PENGUIN_RUNB = [
+    '.......kkkkkkk........',
+    '.....kkkkkkkkkkk......',
+    '....kkkkkkkkkkkkk.....',
+    '....kkkkkkkkwwkkk.....',
+    '....kkkkkkkkw#kkoooo..',
+    '....kkkkkkkkkkkkooo...',
+    '.....kkkkkkkkkkkk.....',
+    '....kkkkwwwwwwkkkk....',
+    '...kkkkwwwwwwwwkkkk...',
+    '..kkkkkwwwwwwwwwkkk...',
+    '.kkkkkkwwwwwwwwwwkkk..',
+    '.kkkkkkwwwwwwwwwwkk...',
+    '.kkkkkkwwwwwwwwwwk....',
+    '..kkkkkwwwwwwwwwk.....',
+    '...kkkkkwwwwwwwkk.....',
+    '....kkkkkwwwwkkkk.....',
+    '.....kkkkkkkkkk.......',
+    '.....kkkkkkkkkk.......',
+    '.......oo..oo.........',
+    '......oo...oo.........',
+    '.....ooo...ooo........',
+    '.....oooo..oooo.......',
+  ];
+  var PENGUIN_DUCKA = [
+    '.................kkkkkkk......',
+    '................kkkkkkkkkkk...',
+    '................kkkkkkwwkkk...',
+    '................kkkkkkw#kkoooo',
+    '...kkkkkkkkkkkkkkkkkkkkkkkkooo',
+    '.kkkkkkkkkkkkkkkkkkkkkkkkkk...',
+    '.kkkkkkwwwwwwwwwwwwwwwwkkkk...',
+    '..kkkkkwwwwwwwwwwwwwwwkkk.....',
+    '....kkkkkkkkkkkkkkkkkkk.......',
+    '......kkkkkkkkkkkkk...........',
+    '..........oo.....oo...........',
+    '.........ooo....ooo...........',
+  ];
+  var PENGUIN_DUCKB = [
+    '.................kkkkkkk......',
+    '................kkkkkkkkkkk...',
+    '................kkkkkkwwkkk...',
+    '................kkkkkkw#kkoooo',
+    '...kkkkkkkkkkkkkkkkkkkkkkkkooo',
+    '.kkkkkkkkkkkkkkkkkkkkkkkkkk...',
+    '.kkkkkkwwwwwwwwwwwwwwwwkkkk...',
+    '..kkkkkwwwwwwwwwwwwwwwkkk.....',
+    '....kkkkkkkkkkkkkkkkkkk.......',
+    '......kkkkkkkkkkkkk...........',
+    '..........oo......oo..........',
+    '.........ooo.....ooo..........',
+  ];
+
+  /* ---------- robot ---------- */
+  var ROBOT_PALETTE = {
+    m: '#8D99AE',
+    h: '#CAD2DC',
+    a: '#5C677D',
+    b: '#2B86C5',
+    y: '#FFD700',
+    r: '#FF477E',
+    '#': '#1B1F3B',
+  };
+  var ROBOT_STAND = [
+    '...........y..........',
+    '...........m..........',
+    '.......mmmmmmmmmmm....',
+    '......mhhhhhhhhhhm....',
+    '......m#####rr###m....',
+    '......m##########m....',
+    '......mmmbmbmbmbmm....',
+    '..........mm..........',
+    '....mmmmmmmmmmmmmm....',
+    '..aamhhhhhhhhhhhhmaa..',
+    '..aamhhhhbbbbhhhhmaa..',
+    '..aamhhhhbyybhhhhmaa..',
+    '..aamhhhhbbbbhhhhmaa..',
+    '..aamhhhhhhhhhhhhmaa..',
+    '....mmmmmmmmmmmmmm....',
+    '.....mmmmmmmmmmmm.....',
+    '......aaa....aaa......',
+    '......aaa....aaa......',
+    '......aaa....aaa......',
+    '......aaa....aaa......',
+    '.....aaaaa..aaaaa.....',
+    '.....aaaaa..aaaaa.....',
+  ];
+  var ROBOT_RUNA = [
+    '...........y..........',
+    '...........m..........',
+    '.......mmmmmmmmmmm....',
+    '......mhhhhhhhhhhm....',
+    '......m#####rr###m....',
+    '......m##########m....',
+    '......mmmbmbmbmbmm....',
+    '..........mm..........',
+    '....mmmmmmmmmmmmmm....',
+    '..aamhhhhhhhhhhhhmaa..',
+    '..aamhhhhbbbbhhhhmaa..',
+    '..aamhhhhbyybhhhhmaa..',
+    '..aamhhhhbbbbhhhhmaa..',
+    '..aamhhhhhhhhhhhhmaa..',
+    '....mmmmmmmmmmmmmm....',
+    '.....mmmmmmmmmmmm.....',
+    '......aaa....aaa......',
+    '......aaa....aaa......',
+    '......aaa.....aaa.....',
+    '......aaa.....aaa.....',
+    '.....aaaaa...aaaaa....',
+    '.....aaaaa...aaaaa....',
+  ];
+  var ROBOT_RUNB = [
+    '...........y..........',
+    '...........m..........',
+    '.......mmmmmmmmmmm....',
+    '......mhhhhhhhhhhm....',
+    '......m#####rr###m....',
+    '......m##########m....',
+    '......mmmbmbmbmbmm....',
+    '..........mm..........',
+    '....mmmmmmmmmmmmmm....',
+    '..aamhhhhhhhhhhhhmaa..',
+    '..aamhhhhbbbbhhhhmaa..',
+    '..aamhhhhbyybhhhhmaa..',
+    '..aamhhhhbbbbhhhhmaa..',
+    '..aamhhhhhhhhhhhhmaa..',
+    '....mmmmmmmmmmmmmm....',
+    '.....mmmmmmmmmmmm.....',
+    '......aaa....aaa......',
+    '......aaa....aaa......',
+    '.....aaa......aaa.....',
+    '.....aaa......aaa.....',
+    '....aaaaa.....aaaaa...',
+    '....aaaaa.....aaaaa...',
+  ];
+  var ROBOT_DUCKA = [
+    '.................mmmmmmmmmmmm.',
+    '................mhhhhhhhhhhhhm',
+    '................m#####rr#####m',
+    '................m############m',
+    '................mmmmmmmmmmmmmm',
+    '...mmmmmmmmmmmmmmmmmmmmmmmm...',
+    '...mhhhhhhhhhhhhhhhhhhhhhhm...',
+    '...mhhhhhhhhbyybhhhhhhhhhhm...',
+    '...mmmmmmmmmmmmmmmmmmmmmmmm...',
+    '....aaaaaaaaaaaaaaaaaaaaaa....',
+    '......aaaa........aaaa........',
+    '.....aaaaaa......aaaaaa.......',
+  ];
+  var ROBOT_DUCKB = [
+    '.................mmmmmmmmmmmm.',
+    '................mhhhhhhhhhhhhm',
+    '................m#####rr#####m',
+    '................m############m',
+    '................mmmmmmmmmmmmmm',
+    '...mmmmmmmmmmmmmmmmmmmmmmmm...',
+    '...mhhhhhhhhhhhhhhhhhhhhhhm...',
+    '...mhhhhhhhhbyybhhhhhhhhhhm...',
+    '...mmmmmmmmmmmmmmmmmmmmmmmm...',
+    '....aaaaaaaaaaaaaaaaaaaaaa....',
+    '.......aaaa......aaaa.........',
+    '......aaaaaa....aaaaaa........',
+  ];
 
   /* ---------- cactus ---------- */
   var CACTUS_PALETTE = {
@@ -347,6 +555,28 @@
         runB:  CAT_BODY.concat(CAT_LEGS.runB),
         duckA: CAT_DUCK_BODY.concat(CAT_DUCK_LEGS.a),
         duckB: CAT_DUCK_BODY.concat(CAT_DUCK_LEGS.b),
+      },
+    },
+    penguin: {
+      palette: PENGUIN_PALETTE,
+      flash: true,
+      frames: {
+        stand: PENGUIN_STAND,
+        runA:  PENGUIN_RUNA,
+        runB:  PENGUIN_RUNB,
+        duckA: PENGUIN_DUCKA,
+        duckB: PENGUIN_DUCKB,
+      },
+    },
+    robot: {
+      palette: ROBOT_PALETTE,
+      flash: true,
+      frames: {
+        stand: ROBOT_STAND,
+        runA:  ROBOT_RUNA,
+        runB:  ROBOT_RUNB,
+        duckA: ROBOT_DUCKA,
+        duckB: ROBOT_DUCKB,
       },
     },
     cactus: {

@@ -1,6 +1,6 @@
 /* ============================================================
    PIXEL RUN — COLOUR EDITION
-   A vivid take on the offline runner. Switch between dino & cat.
+   A vivid take on the offline runner. Switch between dino, cat, penguin & robot.
    Backend: PHP server-side rendering + AJAX leaderboard updates.
    Requires assets/js/sprites.js to be loaded first.
    ============================================================ */
@@ -61,6 +61,9 @@ const overlay = document.getElementById('overlay');
 const ovTitle = document.getElementById('ov-title');
 const ovSub   = document.getElementById('ov-sub');
 const ovSubmit = document.getElementById('ov-submit');
+const ovResult = document.getElementById('ov-result');
+const ovMedal  = document.getElementById('ov-medal');
+const ovBest   = document.getElementById('ov-best');
 const ovName   = document.getElementById('ov-name');
 const ovSend   = document.getElementById('ov-send');
 const ovStatus = document.getElementById('ov-status');
@@ -171,6 +174,8 @@ const SFX = {
     tone({ freq: 880,  dur: 0.07, type: 'square',   vol: 0.04 });
     tone({ freq: 1320, dur: 0.12, type: 'triangle', vol: 0.04, delay: 0.06 });
   },
+  // Short filtered-noise sweep when a run starts or restarts.
+  swoosh:    () => noise({ dur: 0.14, vol: 0.05, filterFreq: 1200 }),
   // Descending four-note sad-trombone for game over.
   gameover:  () => {
     tone({ freq: 523, dur: 0.14, type: 'square', vol: 0.06 });
@@ -205,7 +210,7 @@ const COL = {
 /* ---------- world / state ---------- */
 const game = {
   state: 'idle',     // idle | running | over
-  character: 'dino', // 'dino' | 'cat'
+  character: 'dino', // 'dino' | 'cat' | 'penguin' | 'robot'
   speed: 2.5,        // gentle stroll to start
   maxSpeed: 11,      // softer ceiling
   speedGrow: 0.0002,  // very slow passive ramp
@@ -221,6 +226,8 @@ const game = {
   shieldMax: 540,     // ~9s of shield at 60fps
   bombFlash: 0,       // screen flash from bomb pickup
   flashCD: 0,         // gold milestone flash
+  hitFlash: 0,        // white flash on collision
+  overTimer: 0,       // pending game-over panel timeout id
   nextMilestone: 100, // next score that triggers the milestone flash
 };
 
@@ -354,7 +361,7 @@ function blit(img, x, y) {
 
 /* ---------- drawing: player (dino or cat) ---------- */
 function drawPlayer() {
-  const set = game.character === 'cat' ? 'cat' : 'dino';
+  const set = SPR.normal[game.character] ? game.character : 'dino';
   const flash = dino.hurtFlash > 0 && (dino.hurtFlash % 6 < 3);
   const frames = flash ? SPR.flash[set] : SPR.normal[set];
   const phaseA = Math.floor(game.tick / 5) % 2 === 0;
@@ -366,7 +373,8 @@ function drawPlayer() {
   let f;
   if (game.state !== 'running' || dino.jumping) f = frames.stand;
   else f = phaseA ? frames.runA : frames.runB;
-  blit(f, dino.x, dino.y);
+  const bob = game.state === 'idle' ? Math.round(Math.sin(game.tick / 12) * 3) : 0;
+  blit(f, dino.x, dino.y + bob);
 }
 
 /* ---------- obstacles: cactus ---------- */
@@ -770,16 +778,22 @@ function startGame() {
   game.state = 'running';
   game.runStart = Date.now();
   overlay.classList.add('hidden');
+  SFX.swoosh();
 }
+
+// Score thresholds for the game-over medal.
+const MEDALS = { bronze: 100, silver: 300, gold: 600 };
 
 function gameOver() {
   game.state = 'over';
-  if (game.score > game.hi) {
+  const newBest = game.score > game.hi;
+  if (newBest) {
     game.hi = game.score;
     storageSet(HI_KEY, String(game.hi));
   }
   spawnExplosion(dino.x + 24, dino.y + 24);
   dino.hurtFlash = 30;
+  game.hitFlash = 10;
   SFX.gameover();
   ovTitle.textContent = 'GAME OVER';
   ovSub.innerHTML = `Score <span class="accent-gold">${pad(game.score)}</span> · press <span class="key">R</span> or tap to retry`;
@@ -797,10 +811,27 @@ function gameOver() {
     ovSubmit.hidden = true;
   }
 
-  overlay.classList.remove('hidden');
+  const tier = game.score >= MEDALS.gold ? 'gold'
+             : game.score >= MEDALS.silver ? 'silver'
+             : game.score >= MEDALS.bronze ? 'bronze' : '';
+  ovMedal.hidden = !tier;
+  if (tier) {
+    ovMedal.dataset.tier = tier;
+    ovMedal.querySelector('.medal-label').textContent = tier.toUpperCase();
+  }
+  ovBest.hidden = !newBest;
+  ovResult.hidden = !tier && !newBest;
+
+  // Brief hit-stop so the collision registers before the panel appears.
+  clearTimeout(game.overTimer);
+  game.overTimer = setTimeout(() => overlay.classList.remove('hidden'), 450);
 }
 
 function restart() {
+  clearTimeout(game.overTimer);
+  ovResult.hidden = true;
+  game.hitFlash = 0;
+  SFX.swoosh();
   obstacles.length = 0;
   gifts.length = 0;
   particles.length = 0;
@@ -926,6 +957,8 @@ async function loadLeaderboard(filter = 'all') {
   }
 }
 
+const CHAR_ICONS = { dino: '🦖', cat: '🐱', penguin: '🐧', robot: '🤖' };
+
 function renderLeaderboard(scores, total) {
   if (!scores || scores.length === 0) {
     lbList.innerHTML = '<p class="lb-empty">No scores yet. Be the first!</p>';
@@ -934,7 +967,7 @@ function renderLeaderboard(scores, total) {
   }
   const rows = scores.map((row, i) => {
     const rank = i + 1;
-    const icon = row.character_type === 'cat' ? '🐱' : '🦖';
+    const icon = CHAR_ICONS[row.character_type] || CHAR_ICONS.dino;
     const name = escapeHtml(row.player_name);
     const score = pad(parseInt(row.score, 10));
     return `
@@ -1089,6 +1122,7 @@ function update() {
   cycleT++;
   if (game.flashCD > 0) game.flashCD--;
   if (game.bombFlash > 0) game.bombFlash--;
+  if (game.hitFlash > 0) game.hitFlash--;
 
   if (game.state !== 'running') {
     // still animate clouds + stars softly when idle
@@ -1303,6 +1337,12 @@ function render() {
   if (game.bombFlash > 0) {
     const a = game.bombFlash / 22;
     ctx.fillStyle = `rgba(255,255,255,${a * 0.7})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // collision flash
+  if (game.hitFlash > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${game.hitFlash / 10 * 0.8})`;
     ctx.fillRect(0, 0, W, H);
   }
 
