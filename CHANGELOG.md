@@ -6,6 +6,17 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed (graphics)
+- Sharper rendering: the canvas now renders at the screen's real pixel
+  resolution (up to 3x, capped at 2880 px wide) instead of a fixed 960x320
+  that the browser stretched. Sprites are rebuilt at that scale with cell edges
+  snapped to whole device pixels, and the canvas follows window resizes and
+  zoom, so pixel art stays crisp on high-DPI phones, tablets and monitors.
+- Richer scenery: layered parallax mountains and dunes that scroll at
+  different speeds and take their colour from the time of day, a soft glowing
+  sun and a cratered moon, a shaded ground that dims at night, and soft
+  shadows under the characters and cacti.
+
 ### Added (databases)
 - PostgreSQL and SQLite support alongside MySQL/MariaDB. The installer has a
   tab for each, creates the PostgreSQL database or the SQLite file for you,

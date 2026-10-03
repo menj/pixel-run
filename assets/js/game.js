@@ -58,8 +58,12 @@ let gameMode = (function loadStoredMode() {
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-const W = canvas.width;
-const H = canvas.height;
+// Logical (design) size. The backing store is resized to the real device
+// resolution (see fitCanvas) and drawing is scaled by VIEW, so the game code
+// keeps working in these units.
+const W = 960;
+const H = 320;
+let VIEW = 1;   // device pixels per logical unit
 
 const overlay = document.getElementById('overlay');
 const ovTitle = document.getElementById('ov-title');
@@ -237,6 +241,7 @@ const game = {
   bombFlash: 0,       // screen flash from bomb pickup
   flashCD: 0,         // gold milestone flash
   hitFlash: 0,        // white flash on collision
+  scroll: 0,          // distance travelled, drives the parallax backdrop
   shake: 0,           // screen-shake ticks left after a crash
   jumpBuf: 0,         // ticks a too-early jump press stays queued
   god: false,         // admin cheat: cannot die (admin sessions only)
@@ -375,28 +380,36 @@ function currentSky() {
 }
 
 /* ---------- pixel art helpers ---------- */
+// Fill a rectangle whose edges land on whole device pixels (no blurry seams).
 function px(x, y, w, h, color) {
   ctx.fillStyle = color;
-  ctx.fillRect(Math.round(x), Math.round(y), w, h);
+  const x0 = Math.round(x * VIEW), y0 = Math.round(y * VIEW);
+  const x1 = Math.round((x + w) * VIEW), y1 = Math.round((y + h) * VIEW);
+  ctx.fillRect(x0 / VIEW, y0 / VIEW, (x1 - x0) / VIEW, (y1 - y0) / VIEW);
 }
 
 /* ---------- sprites (bitmaps from sprites.js, pre-rendered once) ---------- */
 const SPRITE_DATA = window.PixelRunSprites;
 const SPRITE_SCALE = SPRITE_DATA.SCALE;
 
-// Rasterize an outlined character grid to an offscreen canvas.
+// Rasterize an outlined character grid to an offscreen canvas at the current
+// device scale. Cell edges are snapped to whole device pixels, so sprites stay
+// razor sharp at any zoom or screen density.
 function rasterize(rows, palette) {
-  const s = SPRITE_SCALE;
+  const cell = SPRITE_SCALE * VIEW;
+  const cols = rows[0].length;
   const c = document.createElement('canvas');
-  c.width = rows[0].length * s;
-  c.height = rows.length * s;
+  c.width = Math.round(cols * cell);
+  c.height = Math.round(rows.length * cell);
   const g = c.getContext('2d');
   for (let r = 0; r < rows.length; r++) {
-    for (let col = 0; col < rows[r].length; col++) {
+    const y0 = Math.round(r * cell), y1 = Math.round((r + 1) * cell);
+    for (let col = 0; col < cols; col++) {
       const ch = rows[r][col];
       if (ch === '.') continue;
       g.fillStyle = palette[ch] || '#FF00FF';
-      g.fillRect(col * s, r * s, s, s);
+      const x0 = Math.round(col * cell);
+      g.fillRect(x0, y0, Math.round((col + 1) * cell) - x0, y1 - y0);
     }
   }
   return c;
@@ -419,17 +432,43 @@ function buildSprites(data) {
   }
   return out;
 }
-const SPR = buildSprites(SPRITE_DATA);
+let SPR = buildSprites(SPRITE_DATA);
 
+/* ---------- crisp rendering: match the backing store to the screen ---------- */
+// The canvas CSS size is fluid, but its pixel size used to stay 960x320 and
+// the browser stretched it, which blurred or unevened every pixel. Now the
+// backing store follows the real on-screen size in device pixels (capped for
+// performance), and sprites are rebuilt at that scale.
+function fitCanvas() {
+  const r = canvas.getBoundingClientRect();
+  if (!r.width) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = Math.max(W, Math.min(2880, Math.round(r.width * dpr)));
+  const h = Math.round(w * H / W);
+  if (canvas.width === w && canvas.height === h) return;
+  canvas.width = w;
+  canvas.height = h;
+  VIEW = w / W;
+  SPR = buildSprites(SPRITE_DATA);
+}
+if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(canvas);
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
+
+// Sprites are rasterised at device resolution, so draw them 1:1 on the device
+// pixel grid: no resampling, no blur.
 function blit(img, x, y) {
-  ctx.drawImage(img, Math.round(x), Math.round(y));
+  ctx.drawImage(img, Math.round(x * VIEW) / VIEW, Math.round(y * VIEW) / VIEW, img.width / VIEW, img.height / VIEW);
 }
 
 // Draw a sprite scaled around its feet (bottom centre) for squash and stretch.
 function blitScaled(img, x, y, sx, sy) {
   if (sx === 1 && sy === 1) { blit(img, x, y); return; }
-  const w = img.width * sx, h = img.height * sy;
-  ctx.drawImage(img, Math.round(x + (img.width - w) / 2), Math.round(y + img.height - h), Math.round(w), Math.round(h));
+  const iw = img.width / VIEW, ih = img.height / VIEW;   // logical size
+  const w = iw * sx, h = ih * sy;
+  ctx.drawImage(img,
+    Math.round((x + (iw - w) / 2) * VIEW) / VIEW, Math.round((y + ih - h) * VIEW) / VIEW,
+    Math.round(w * VIEW) / VIEW, Math.round(h * VIEW) / VIEW);
 }
 
 /* ---------- drawing: player (dino or cat) ---------- */
@@ -568,17 +607,33 @@ function drawCloud(c) {
   px(x + 14, y - 4,  c.w - 28,4, c.tint);
 }
 
+/* ---------- colour helpers ---------- */
+function parseColor(c) {
+  if (c[0] === '#') return hexToRgb(c);
+  const m = c.match(/\d+/g);
+  return { r: +m[0], g: +m[1], b: +m[2] };
+}
+// Blend colour a toward colour b by t (either may be #hex or rgb()).
+function mix(a, b, t) {
+  const p = parseColor(a), q = parseColor(b);
+  return `rgb(${Math.round(lerp(p.r, q.r, t))},${Math.round(lerp(p.g, q.g, t))},${Math.round(lerp(p.b, q.b, t))})`;
+}
+
 /* ---------- drawing: ground ---------- */
-function drawGround() {
+function drawGround(sky) {
   const offset = Math.floor(game.tick * game.speed) % 32;
 
-  // base ground band
-  ctx.fillStyle = COL.groundBase;
+  // base ground band: a gentle vertical gradient instead of a flat fill
+  const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  gg.addColorStop(0, '#F2B98C');
+  gg.addColorStop(0.45, COL.groundBase);
+  gg.addColorStop(1, '#CF9470');
+  ctx.fillStyle = gg;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
 
-  // ground top line
-  ctx.fillStyle = COL.groundDark;
-  ctx.fillRect(0, GROUND_Y, W, 2);
+  // ground top line, with a soft highlight just under it
+  px(0, GROUND_Y, W, 2, COL.groundDark);
+  px(0, GROUND_Y + 2, W, 2, 'rgba(255,255,255,0.22)');
 
   // dashes / pebbles travelling left
   for (let i = -1; i < W / 32 + 2; i++) {
@@ -586,17 +641,70 @@ function drawGround() {
     const seed = (i * 9301 + 49297) % 233280;
     const r = (seed / 233280);
     if (r < 0.4) {
-      px(x + 4,  GROUND_Y + 6, 8, 2, COL.pebble1);
+      px(x + 4,  GROUND_Y + 8, 8, 2, COL.pebble1);
     } else if (r < 0.7) {
-      px(x + 16, GROUND_Y + 10, 4, 2, COL.pebble2);
+      px(x + 16, GROUND_Y + 12, 4, 2, COL.pebble2);
     } else {
-      px(x + 8, GROUND_Y + 14, 2, 2, COL.groundDark);
+      px(x + 8, GROUND_Y + 16, 2, 2, COL.groundDark);
     }
   }
 
+  // dim the ground as the sky darkens, so night does not have a sunlit floor
+  const top = parseColor(sky.top);
+  const lum = (0.2126 * top.r + 0.7152 * top.g + 0.0722 * top.b) / 255;   // 0 night .. ~0.7 day
+  const dark = Math.max(0, Math.min(0.6, 0.62 - lum * 1.2));
+  if (dark > 0.01) px(0, GROUND_Y, W, H - GROUND_Y, `rgba(22,8,56,${dark})`);
+
   // sub-shadow band
-  ctx.fillStyle = 'rgba(0,0,0,0.06)';
-  ctx.fillRect(0, GROUND_Y + 18, W, H - GROUND_Y - 18);
+  px(0, GROUND_Y + 22, W, H - GROUND_Y - 22, 'rgba(60,20,70,0.07)');
+}
+
+/* ---------- drawing: parallax backdrop ---------- */
+// Smooth vector silhouettes (peaks and two dune layers) scrolling at different
+// speeds. Their colour is the horizon colour pulled toward a tint, so they sit
+// naturally in every time of day.
+function drawRidge(scroll, base, amp, f1, f2, phase, fill, jagged) {
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND_Y);
+  for (let x = 0; x <= W + 8; x += 8) {
+    const t = x + scroll;
+    let y;
+    if (jagged) {
+      const tri = 1 - Math.abs(((t * f1 + phase) % 2 + 2) % 2 - 1);   // 0..1 zigzag
+      y = base - amp * (0.35 + 0.65 * tri) - amp * 0.25 * Math.sin(t * f2 + phase);
+    } else {
+      y = base - amp * (0.55 + 0.45 * Math.sin(t * f1 + phase)) - amp * 0.35 * Math.sin(t * f2 + phase * 1.7);
+    }
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W + 8, GROUND_Y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawBackdrop(sky) {
+  const tint = sky.isNight ? '#241048' : '#9C5A86';
+  drawRidge(game.scroll * 0.04, GROUND_Y - 34, 62, 0.0042, 0.011, 1.3, mix(sky.bot, tint, 0.30), true);
+  drawRidge(game.scroll * 0.12, GROUND_Y - 14, 34, 0.0075, 0.019, 0.4, mix(sky.bot, tint, 0.46), false);
+  drawRidge(game.scroll * 0.26, GROUND_Y - 2,  18, 0.0120, 0.031, 2.1, mix(sky.bot, tint, 0.62), false);
+}
+
+/* ---------- drawing: soft shadows under characters and cacti ---------- */
+function drawShadow(cx, width, alpha) {
+  ctx.fillStyle = `rgba(48,16,64,${alpha})`;
+  ctx.beginPath();
+  ctx.ellipse(cx, GROUND_Y + 3, width / 2, 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+function drawShadows() {
+  const ducked = dino.ducking && !dino.jumping;
+  const lift = Math.max(0, GROUND_Y - (dino.y + STAND_H));       // height above ground
+  const k = Math.max(0.35, 1 - lift / 150);                       // shrinks and fades as it jumps
+  drawShadow(dino.x + (ducked ? 32 : 22), (ducked ? 58 : 38) * k, 0.26 * k);
+  for (const o of obstacles) {
+    if (o.type !== 'bird') drawShadow(o.x + o.w / 2, o.w * 0.95, 0.2);
+  }
 }
 
 /* ---------- drawing: sky + celestials ---------- */
@@ -615,44 +723,48 @@ function drawSky(sky) {
   const arcY = 200 - Math.sin(((phase * 2) % 1) * Math.PI) * 160;
 
   if (phase < 0.5) {
-    // sun
-    ctx.fillStyle = COL.sunGlow;
-    ctx.beginPath();
-    ctx.arc(arcX, arcY, 24, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = COL.sun;
-    ctx.beginPath();
-    ctx.arc(arcX, arcY, 16, 0, Math.PI * 2);
-    ctx.fill();
+    // sun: wide soft glow, a warm halo ring, then a shaded core
+    const glow = ctx.createRadialGradient(arcX, arcY, 6, arcX, arcY, 120);
+    glow.addColorStop(0, 'rgba(255,170,120,0.55)');
+    glow.addColorStop(1, 'rgba(255,170,120,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(arcX, arcY, 120, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,154,139,0.55)';
+    ctx.beginPath(); ctx.arc(arcX, arcY, 26, 0, Math.PI * 2); ctx.fill();
+    const core = ctx.createRadialGradient(arcX - 4, arcY - 5, 2, arcX, arcY, 17);
+    core.addColorStop(0, '#FFE9A8');
+    core.addColorStop(1, COL.sun);
+    ctx.fillStyle = core;
+    ctx.beginPath(); ctx.arc(arcX, arcY, 17, 0, Math.PI * 2); ctx.fill();
   } else {
-    // moon
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.beginPath();
-    ctx.arc(arcX, arcY, 22, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = COL.moon;
-    ctx.beginPath();
-    ctx.arc(arcX, arcY, 14, 0, Math.PI * 2);
-    ctx.fill();
-    // crescent shadow
-    ctx.fillStyle = sky.top;
-    ctx.beginPath();
-    ctx.arc(arcX - 6, arcY - 3, 12, 0, Math.PI * 2);
-    ctx.fill();
+    // moon: cool glow, a lit disc and a few craters
+    const glow = ctx.createRadialGradient(arcX, arcY, 6, arcX, arcY, 90);
+    glow.addColorStop(0, 'rgba(190,200,255,0.35)');
+    glow.addColorStop(1, 'rgba(190,200,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(arcX, arcY, 90, 0, Math.PI * 2); ctx.fill();
+    const disc = ctx.createRadialGradient(arcX - 4, arcY - 4, 2, arcX, arcY, 15);
+    disc.addColorStop(0, '#FFFFFF');
+    disc.addColorStop(1, COL.moon);
+    ctx.fillStyle = disc;
+    ctx.beginPath(); ctx.arc(arcX, arcY, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(120,125,190,0.28)';
+    for (const [dx, dy, r] of [[-5, -3, 3.2], [4, 3, 2.6], [-1, 7, 1.8]]) {
+      ctx.beginPath(); ctx.arc(arcX + dx, arcY + dy, r, 0, Math.PI * 2); ctx.fill();
+    }
   }
 
   // stars when night-ish
   if (sky.isNight) {
     for (const s of stars) {
       const tw = 0.5 + Math.sin((game.tick + s.seed) * 0.05) * 0.5;
-      ctx.fillStyle = `rgba(255,215,0,${0.4 + tw * 0.6})`;
-      ctx.fillRect(s.x, s.y, s.size, s.size);
+      px(s.x, s.y, s.size, s.size, `rgba(255,215,0,${0.4 + tw * 0.6})`);
       if (s.size > 1) {
-        ctx.fillStyle = `rgba(255,255,255,${tw})`;
-        ctx.fillRect(s.x, s.y - 1, 1, 1);
-        ctx.fillRect(s.x, s.y + s.size, 1, 1);
-        ctx.fillRect(s.x - 1, s.y, 1, 1);
-        ctx.fillRect(s.x + s.size, s.y, 1, 1);
+        const glint = `rgba(255,255,255,${tw})`;
+        px(s.x, s.y - 1, 1, 1, glint);
+        px(s.x, s.y + s.size, 1, 1, glint);
+        px(s.x - 1, s.y, 1, 1, glint);
+        px(s.x + s.size, s.y, 1, 1, glint);
       }
     }
   }
@@ -749,10 +861,7 @@ function updateParticles() {
 }
 
 function drawParticles() {
-  for (const p of particles) {
-    ctx.fillStyle = p.color;
-    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
-  }
+  for (const p of particles) px(p.x, p.y, p.size, p.size, p.color);
 }
 
 /* ---------- collision ---------- */
@@ -1534,6 +1643,7 @@ function update() {
   if (game.state !== 'running') {
     // still animate clouds + stars softly when idle
     if (game.state === 'idle') {
+      game.scroll += 0.5;   // the backdrop drifts on the title screen
       for (const c of clouds) {
         c.x -= c.speed;
         if (c.x + c.w < 0) {
@@ -1549,6 +1659,7 @@ function update() {
 
   // speed ramp
   if (game.speed < game.maxSpeed) game.speed += game.speedGrow;
+  game.scroll += game.speed;
 
   // score
   if (game.tick % 6 === 0) game.score++;
@@ -1692,6 +1803,8 @@ function update() {
 
 /* ---------- render ---------- */
 function render() {
+  ctx.setTransform(VIEW, 0, 0, VIEW, 0, 0);
+  ctx.imageSmoothingEnabled = false;
   const sky = currentSky();
   drawSky(sky);
 
@@ -1699,13 +1812,15 @@ function render() {
   ctx.save();
   if (game.shake > 0) {
     const m = game.shake * 0.5;
-    ctx.translate(Math.round((Math.random() - 0.5) * m * 2), Math.round((Math.random() - 0.5) * m * 2));
+    ctx.translate(Math.round((Math.random() - 0.5) * m * 2 * VIEW) / VIEW, Math.round((Math.random() - 0.5) * m * 2 * VIEW) / VIEW);
   }
 
   // clouds
   for (const c of clouds) drawCloud(c);
 
-  drawGround();
+  drawBackdrop(sky);
+  drawGround(sky);
+  drawShadows();
 
   // obstacles
   for (const o of obstacles) {
