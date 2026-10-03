@@ -159,6 +159,10 @@ $assetVersion = h((string)$cfg['version']);
     <div class="overlay" id="overlay">
       <div class="overlay-card">
         <h2 id="ov-title">PRESS SPACE TO PLAY</h2>
+        <div id="ov-result" class="ov-result" hidden>
+          <span id="ov-medal" class="ov-medal" hidden><span class="medal-disc"></span><span class="medal-label"></span></span>
+          <span id="ov-best" class="ov-best" hidden>NEW BEST</span>
+        </div>
         <p id="ov-sub" class="pulse">Jump the cacti. Duck the birds.</p>
         <div id="ov-submit" class="ov-submit" hidden>
           <label class="ov-name-label" for="ov-name">YOUR NAME</label>

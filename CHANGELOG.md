@@ -4,6 +4,14 @@ All notable changes to Pixel Run are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Idle bob on the title screen, with a swoosh sound on start and restart.
+- Game-over medals (bronze 100, silver 300, gold 600) and a NEW BEST badge,
+  coloured through CSS variables in `assets/css/style.css`.
+- White collision flash and a short hit-stop before the game-over panel.
+
 ## [1.0.0] - 2026-09-24
 
 First versioned release. Earlier iterations circulated as unversioned
