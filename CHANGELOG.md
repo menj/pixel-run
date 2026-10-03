@@ -8,7 +8,8 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Redesigned the T-Rex sprites: larger head with a toothy open jaw, stout
-  upright body, tiny forearms and thick legs. Hitboxes are unchanged.
+  upright body, tiny forearms and thick legs. The duck pose is a hunch with
+  a raised tail spike rather than a long flat shape. Hitboxes are unchanged.
 
 ### Added
 - Two new playable characters, a penguin and a robot, with picker buttons

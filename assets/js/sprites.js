@@ -17,8 +17,9 @@
   var SCALE = 2;
 
   /* ---------- dino (T-rex), 22 x 22 ---------- */
-  // Big head with an open, toothy jaw, a stout upright body, tiny
-  // forearms and thick legs, so it reads as a T-rex rather than a lizard.
+  // Deep boxy head with a short snout and brow ridge, an upright body,
+  // tiny forearms and thick legs, so it reads as a T-rex rather than a
+  // lizard or crocodile.
   var DINO_PALETTE = {
     d: '#5A8B3A', // sage body
     g: '#46722C', // darker back spots
@@ -30,21 +31,21 @@
 
   // rows 0..15: head, neck, body, tail; rows 16..21: legs
   var DINO_BODY = [
-    '.........ddddddddddd..',
-    '........dddddddddddddd',
-    '........dddddeeddddddd',
-    '........ddddde#ddddddd',
-    '........dddddddddddddd',
-    '.......ddddddd#w#w#w#w',
-    '.......dddddddddddd...',
-    '......dddddddddd......',
-    '....dddgddddddlll.....',
-    '..dddddddgddddllll....',
-    '.dddgdddddddlllldd....',
-    'ddddddddddddlllld.....',
-    'dddddddddddllllll.....',
-    '.ddddddddddllllll.....',
-    '..dddddddddlllll......',
+    '..........dddddddddd..',
+    '.........dddddddddddd.',
+    '.........dddd####ddddd',
+    '.........dddddeedddddd',
+    '.........ddddde#dddddd',
+    '.........ddddddddddd#d',
+    '.........ddddddd#w#w#d',
+    '.........dddddddddddd.',
+    '........ddddddddddd...',
+    '.......dddddddddd.....',
+    '....dddddddddlllll....',
+    '..dddgdddddddllllldd..',
+    'dddddddddddddllllld...',
+    '.dddddddddddllllll....',
+    '...ddddddddddlllll....',
     '....dddddddddddd......',
   ];
   var DINO_LEGS = {
@@ -81,15 +82,15 @@
   /* ---------- dino ducking, 30 x 12 ---------- */
   var DINO_DUCK_BODY = [
     '..................dddddddddddd',
-    '..................dddeeddddddd',
-    '..................ddde#ddddddd',
-    '..................dddddddddddd',
-    '...ddddddddddddddddd#w#w#w#w#w',
-    '.dddddddddddddddddddd.........',
-    'ddddddddddddlllllllll.........',
-    '.ddddddddddlllllllllll........',
-    '..dddddddddllllllllll.........',
-    '....dddddddddddddd............',
+    '..................dddd####dddd',
+    'ddd......dddddddd.dddddeeddddd',
+    '.ddd...dddddddddddddddde#dddd#',
+    '..dddddddddddddddddddddddddddd',
+    '...dddddddddddddddddddddd#w#w#',
+    '...ddddddddllllllldddddddddddd',
+    '...ddddddddlllllllllldd.......',
+    '......dddddlllllllll..d.......',
+    '.......dddddddddddd...........',
   ];
   var DINO_DUCK_LEGS = {
     a: [
