@@ -41,6 +41,63 @@ Anyone can edit browser scripts, so the cheat is gated by the server session
 and cheated runs are kept out of the records instead of trying to hide the
 code.
 
+## Hosting inside an arcade hub
+
+Pixel Run is built to sit in its own folder under a hub, for example
+`menj.buzz/arcade/pixel-run/`, with the hub page at `menj.buzz/arcade/`.
+
+```
+arcade/
+├── index.html          the hub (separate project)
+├── pixel-run/          this package, uploaded as-is
+│   ├── index.php  standalone.html  install.php  admin.php
+│   ├── game.json       what the hub reads about this game
+│   ├── manifest.webmanifest   makes it installable to a home screen
+│   └── assets/  api/  includes/  data/  sql/
+└── another-game/
+```
+
+**Everything is relative.** Assets, the API, the installer and the admin page
+all resolve inside the game's own folder, and `index.php` adds a `<base>` tag
+so the bare address `/arcade/pixel-run` (no trailing slash) works too. The
+admin cookie is scoped to the folder, so several games on one domain do not
+share a sign-in. Give each game its own database or SQLite file.
+
+**The hub contract: `game.json`.** The hub can read
+`/arcade/pixel-run/game.json` to build a card without hard-coding anything:
+
+| Field | Meaning |
+|-------|---------|
+| `id`, `title`, `tagline`, `description` | Text for the card and page |
+| `url` | Where to link (`./`, relative to the game folder) |
+| `standalone` | The no-PHP, no-database page, for hosts without PHP |
+| `thumbnail` | 1280x720 card image (`assets/img/thumb.png`) |
+| `icon`, `shareImage` | 192x192 icon and 1200x630 share preview |
+| `input`, `features`, `tags`, `players`, `requires` | Filters and badges |
+| `version` | Keep in step with `version` in `includes/config.php` |
+
+Paths in `game.json` are relative to the game's folder. A hub on a different
+domain needs CORS headers on that file, or you can copy the values into the
+hub.
+
+**Optional settings** in `includes/config.local.php`:
+
+```php
+'public_url' => 'https://menj.buzz/arcade/pixel-run/',  // for share previews
+'arcade_url' => '../',                                   // shows a "‹ ARCADE" link
+```
+
+`standalone.html` has no server, so set `arcadeUrl` in its config block and
+replace the `og:image` address with the full `https://` URL after publishing.
+
+**Web server rules.** Apache reads the shipped `.htaccess` files. On nginx add
+rules for the folders browsers must not reach:
+
+```nginx
+location ~ ^/arcade/pixel-run/(includes|data|sql)/ { deny all; }
+location ~* \.(sqlite3?|db)$ { deny all; }
+```
+
 ## Reactions
 
 Characters react to what happens: a crash topples them with X-eyes, a
@@ -70,6 +127,8 @@ API store, so renaming a character on screen never needs a migration.
 pixel-run/
 ├── index.php              full version: renders the page, serves the form fallback
 ├── install.php            web installer (WordPress-style first-run wizard)
+├── game.json              hub manifest: title, tagline, thumbnail, features
+├── manifest.webmanifest   web app manifest (home-screen install)
 ├── data/                  SQLite database folder (blocked from downloads)
 ├── admin.php              admin sign-in for the cheat code
 ├── standalone.html        no-backend version: links the same assets

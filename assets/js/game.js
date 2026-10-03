@@ -1621,6 +1621,20 @@ lbTabs.forEach((tab) => {
   });
 });
 
+/* ---------- back to the arcade hub (optional) ---------- */
+// Set arcade_url in config.local.php (or arcadeUrl in standalone.html's config
+// block) when the game is hosted inside a hub; nothing is shown otherwise.
+if (/^(\/|\.{1,2}\/|https?:\/\/)/.test(SERVER.arcadeUrl || '')) {
+  const hdr = document.querySelector('header');
+  if (hdr) {
+    const link = document.createElement('a');
+    link.className = 'arcade-link';
+    link.href = SERVER.arcadeUrl;
+    link.textContent = '‹ ARCADE';
+    hdr.insertBefore(link, hdr.firstChild);
+  }
+}
+
 /* ---------- admin cheat code (god mode) ---------- */
 // Only wired up when the server says this browser is a signed-in admin.
 // Type IDDQD, or tap the title five times on a touch screen.

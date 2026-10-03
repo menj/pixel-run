@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "pixel-run",
+  "title": "Pixel Run",
+  "tagline": "Jump the cacti. Duck the birds. Pick your hero.",
+  "description": "A pixel-art endless runner with four heroes (Eeny, Meeny, Miny and Moe), a day and night cycle, a daily challenge, character stories and an optional leaderboard.",
+  "version": "1.0.0",
+  "url": "./",
+  "standalone": "standalone.html",
+  "thumbnail": "assets/img/thumb.png",
+  "icon": "assets/img/icon-192.png",
+  "shareImage": "assets/img/og.png",
+  "themeColor": "#0d0221",
+  "tags": ["arcade", "runner", "pixel-art", "endless"],
+  "players": 1,
+  "input": { "keyboard": true, "touch": true, "gamepad": false },
+  "features": ["leaderboard", "daily-challenge", "stories", "offline-play"],
+  "requires": { "php": "optional", "database": "optional" }
+}

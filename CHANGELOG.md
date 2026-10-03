@@ -6,6 +6,17 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (arcade hub readiness)
+- Ready to live at a path such as `/arcade/pixel-run/`: `index.php` now emits a
+  `<base>` tag so the game works even without a trailing slash, and the
+  sub-folder layout was tested (assets, API, installer, SQLite, admin cookie).
+- `game.json` describes the game for a hub (title, tagline, thumbnail, icon,
+  share image, features), with a 1280x720 thumbnail, 1200x630 share image,
+  favicon and home-screen icons in `assets/img/`, a web app manifest, and
+  Open Graph and Twitter tags. `public_url` and `arcade_url` settings add the
+  full share address and an optional "‹ ARCADE" back link.
+- `sql/` is now blocked from browsers, and the README lists the nginx rules.
+
 ### Added (reactions)
 - Characters now react, humorously. Crashing into anything knocks the
   character back, topples it onto its back and bounces it once, with a comic
