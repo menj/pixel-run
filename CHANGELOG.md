@@ -6,6 +6,10 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Redesigned the T-Rex sprites: larger head with a toothy open jaw, stout
+  upright body, tiny forearms and thick legs. Hitboxes are unchanged.
+
 ### Added
 - Idle bob on the title screen, with a swoosh sound on start and restart.
 - Game-over medals (bronze 100, silver 300, gold 600) and a NEW BEST badge,

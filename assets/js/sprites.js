@@ -17,98 +17,87 @@
   var SCALE = 2;
 
   /* ---------- dino (T-rex), 22 x 22 ---------- */
+  // Big head with an open, toothy jaw, a stout upright body, tiny
+  // forearms and thick legs, so it reads as a T-rex rather than a lizard.
   var DINO_PALETTE = {
     d: '#5A8B3A', // sage body
+    g: '#46722C', // darker back spots
     l: '#A4C964', // lime belly
     e: '#DBDB30', // eye
     w: '#FFFFFF', // tooth
     '#': '#0F1F0F',
   };
 
-  var DINO_UPPER = [
-    'dd....................',
-    'ddd...................',
-    'dddd.......ddddd......',
-    '.ddddddddddddddd......',
-    '..dddddddddddlll......',
-    '...ddddddddddllldd....',
-    '....dddddddddlll.d....',
-    '....ddddddddllll......',
-    '....ddddddllllll......',
-    '....ddddllllllll......',
-    '.....dddlllllll.......',
+  // rows 0..15: head, neck, body, tail; rows 16..21: legs
+  var DINO_BODY = [
+    '.........ddddddddddd..',
+    '........dddddddddddddd',
+    '........dddddeeddddddd',
+    '........ddddde#ddddddd',
+    '........dddddddddddddd',
+    '.......ddddddd#w#w#w#w',
+    '.......dddddddddddd...',
+    '......dddddddddd......',
+    '....dddgddddddlll.....',
+    '..dddddddgddddllll....',
+    '.dddgdddddddlllldd....',
+    'ddddddddddddlllld.....',
+    'dddddddddddllllll.....',
+    '.ddddddddddllllll.....',
+    '..dddddddddlllll......',
+    '....dddddddddddd......',
   ];
-  var DINO_HEAD = [
-    '.............dddddddd.',
-    '............ddeedddddd',
-    '............dde#dddddd',
-    '............dddddddd#d',
-    '............dddd######',
-    '............ddddddwdd.',
-    '............dddddddd..',
-  ];
-  // rows 0..6 head, 7..15 upper body/tail, 16..21 legs
   var DINO_LEGS = {
     stand: [
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '......ddd..ddd........',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
       '.....ddddd.ddddd......',
       '.....ddddd.ddddd......',
     ],
     runA: [
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '......ddd...dddd......',
-      '......ddd...dddd......',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '.....dddd...dddd......',
+      '.....dddd...dddd......',
       '.....ddddd............',
       '.....ddddd............',
     ],
     runB: [
-      '......ddd..ddd........',
-      '......ddd..ddd........',
-      '.....dddd..ddd........',
-      '.....dddd..ddd........',
+      '.....dddd..dddd.......',
+      '.....dddd..dddd.......',
+      '....dddd...dddd.......',
+      '....dddd...dddd.......',
       '...........ddddd......',
       '...........ddddd......',
     ],
   };
 
   function dinoFrame(legs) {
-    // head rows 0..6 merged with the tail rows that share them (rows 5,6)
-    var rows = [];
-    rows.push(DINO_HEAD[0]);
-    rows.push(DINO_HEAD[1]);
-    rows.push(DINO_HEAD[2]);
-    rows.push(DINO_HEAD[3]);
-    rows.push(DINO_HEAD[4]);
-    rows.push(merge(DINO_HEAD[5], DINO_UPPER[0]));
-    rows.push(merge(DINO_HEAD[6], DINO_UPPER[1]));
-    for (var i = 2; i < DINO_UPPER.length; i++) rows.push(DINO_UPPER[i]);
-    return rows.concat(legs);
+    return DINO_BODY.concat(legs);
   }
 
   /* ---------- dino ducking, 30 x 12 ---------- */
   var DINO_DUCK_BODY = [
-    '.....................dddddddd.',
-    '....................ddeedddddd',
-    '....................dde#dddddd',
-    '....dddddddddddddddddddddddd#d',
-    '...ddddddddddddddddddddd######',
-    '.ddddddddddddddddddddddddwdd..',
-    'ddddddddddddddddddllllddddddd.',
-    '.dddddddddllllllllllll........',
-    '...dddddlllllllllllll.........',
-    '.....dddllllllllllll..........',
+    '..................dddddddddddd',
+    '..................dddeeddddddd',
+    '..................ddde#ddddddd',
+    '..................dddddddddddd',
+    '...ddddddddddddddddd#w#w#w#w#w',
+    '.dddddddddddddddddddd.........',
+    'ddddddddddddlllllllll.........',
+    '.ddddddddddlllllllllll........',
+    '..dddddddddllllllllll.........',
+    '....dddddddddddddd............',
   ];
   var DINO_DUCK_LEGS = {
     a: [
-      '.......ddd.....ddd............',
+      '.......ddd....ddd.............',
       '......ddddd...................',
     ],
     b: [
-      '.......ddd.....ddd............',
+      '.......ddd....ddd.............',
       '..............ddddd...........',
     ],
   };
