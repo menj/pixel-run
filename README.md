@@ -26,6 +26,12 @@ and Mo unlock at best scores of 300 and 600. The 📅 DAILY button plays a
 shared seeded course that changes each UTC day, with its own leaderboard
 tab.
 
+## Stories
+
+Each character has a four-chapter story behind the 📖 STORY button. Chapters
+open as your best score grows, so the score goals double as story progress.
+Edit `assets/js/stories.js` to change the text or add a language.
+
 ## Characters
 
 Eeny (dino), Meeny (tabby cat), Miney (penguin) and Mo (bot). They are
@@ -45,6 +51,7 @@ pixel-run/
 │   ├── css/style.css      all styling
 │   └── js/
 │       ├── sprites.js     character and obstacle bitmaps with palettes
+│       ├── stories.js     character story text (plain data, easy to edit)
 │       └── game.js        engine (requires sprites.js to load first)
 ├── includes/              internal PHP, denied to browsers by .htaccess
 │   ├── config.php         version and tunables (credentials come from config.local.php)

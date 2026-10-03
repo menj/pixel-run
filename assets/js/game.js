@@ -72,6 +72,11 @@ const ovStatus = document.getElementById('ov-status');
 const lbOpen   = document.getElementById('lb-open');
 const lbModal  = document.getElementById('lb-modal');
 const lbClose  = document.getElementById('lb-close');
+const storyBtn   = document.getElementById('story-btn');
+const storyModal = document.getElementById('story-modal');
+const storyClose = document.getElementById('story-close');
+const storyBody  = document.getElementById('story-body');
+const storyTabs  = document.querySelectorAll('.story-tab');
 const lbList   = document.getElementById('lb-list');
 const lbFoot   = document.getElementById('lb-foot');
 const lbTabs   = document.querySelectorAll('.lb-tab');
@@ -816,7 +821,19 @@ function isTypingTarget(el) {
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 }
 
+function closeModals() {
+  lbModal.hidden = true;
+  if (!storyModal.hidden) {
+    storyModal.hidden = true;
+    if (storyBtn) storyBtn.focus();
+  }
+}
 window.addEventListener('keydown', (e) => {
+  // While a panel is open the keyboard belongs to it, not to the game behind.
+  if (!storyModal.hidden || !lbModal.hidden) {
+    if (e.code === 'Escape') closeModals();
+    return;
+  }
   if (isTypingTarget(e.target)) return; // Space, R and M must not fire while naming a score
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     e.preventDefault();
@@ -975,6 +992,7 @@ function gameOver() {
   game.state = 'over';
   let newBest;
   let unlocked = [];
+  const newChapters = [];
   if (game.mode === 'daily') {
     newBest = game.score > game.dailyBest;
     if (newBest) {
@@ -990,6 +1008,15 @@ function gameOver() {
     }
     unlocked = Object.values(CHARACTERS).filter((c) => c.unlock > before && c.unlock <= game.hi).map((c) => c.name);
     if (unlocked.length) refreshPicker();
+    // Chapters beyond a character's first unlock at score marks of their own.
+    for (const [id, s] of Object.entries(STORIES)) {
+      const c = CHARACTERS[id];
+      if (!c || game.hi < c.unlock) continue;
+      for (const ch of s.chapters) {
+        if (ch.at > c.unlock && ch.at > before && ch.at <= game.hi) newChapters.push(`${c.name}: ${ch.title}`);
+      }
+    }
+    refreshStoryBadge();
   }
   game.shake = 14;
   spawnExplosion(dino.x + 24, dino.y + 24);
@@ -1001,6 +1028,7 @@ function gameOver() {
     ? `Score <span class="accent-gold">${pad(game.score)}</span>`
     : `Score <span class="accent-gold">${pad(game.score)}</span> · press <span class="key">R</span> or tap to retry`;
   if (unlocked.length) ovSub.innerHTML += `<br><span class="accent-gold">${unlocked.join(' & ')} unlocked!</span>`;
+  if (newChapters.length) ovSub.innerHTML += `<br><span class="accent-gold">📖 New chapter: ${escapeHtml(newChapters.slice(0, 2).join(' · '))}</span>`;
   if (game.mode === 'daily') ovSub.innerHTML += `<br>Daily ${game.dailyDate}`;
   overlay.classList.add('is-over');
   ovAgain.hidden = false;
@@ -1232,6 +1260,96 @@ lbTabs.forEach((tab) => {
     loadLeaderboard(tab.dataset.filter);
   });
 });
+
+/* ---------- character stories ---------- */
+// Text lives in stories.js. A chapter opens once the best score reaches its
+// `at` mark, so the medal-style score goals double as story progress.
+const STORIES = window.PixelRunStories || {};
+const STORY_SEEN_KEY = 'pixel_run_story_seen';   // JSON { id: chapters already read }
+
+function storySeen() {
+  try { return JSON.parse(storageGet(STORY_SEEN_KEY) || '{}') || {}; } catch (_) { return {}; }
+}
+function openChapterCount(id) {
+  const s = STORIES[id];
+  if (!s || !isUnlocked(id)) return 0;
+  return s.chapters.filter((ch) => game.hi >= ch.at).length;
+}
+function refreshStoryBadge() {
+  if (!storyBtn) return;
+  const seen = storySeen();
+  storyBtn.classList.toggle('has-new', Object.keys(STORIES).some((id) => openChapterCount(id) > (seen[id] || 0)));
+}
+function storyEl(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function renderStory(id) {
+  const s = STORIES[id];
+  const c = CHARACTERS[id];
+  if (!s || !c) return;
+  storyTabs.forEach((t) => t.classList.toggle('active', t.dataset.char === id));
+
+  const seen = storySeen();
+  const readBefore = seen[id] || 0;
+  const open = isUnlocked(id);
+  storyBody.textContent = '';
+  storyBody.scrollTop = 0;
+
+  const hero = storyEl('div', 'story-hero');
+  const portrait = document.createElement('canvas');
+  const img = SPR.normal[id] && SPR.normal[id].stand;
+  if (img) {
+    portrait.width = img.width;
+    portrait.height = img.height;
+    portrait.getContext('2d').drawImage(img, 0, 0);
+  }
+  const heading = storyEl('div');
+  heading.appendChild(storyEl('h3', '', `${c.name} · ${s.title}`));
+  heading.appendChild(storyEl('p', '', open ? c.blurb : s.teaser));
+  hero.append(portrait, heading);
+  storyBody.appendChild(hero);
+
+  if (!open) {
+    const lock = storyEl('div', 'story-chapter locked');
+    lock.appendChild(storyEl('h4', '', `🔒 Meet ${c.name}`));
+    lock.appendChild(storyEl('p', '', `Reach a best score of ${c.unlock} to unlock ${c.name} and the story.`));
+    storyBody.appendChild(lock);
+    return;
+  }
+
+  s.chapters.forEach((ch, i) => {
+    const isOpen = game.hi >= ch.at;
+    const box = storyEl('div', 'story-chapter' + (isOpen ? '' : ' locked') + (isOpen && i >= readBefore ? ' is-new' : ''));
+    box.appendChild(storyEl('h4', '', isOpen ? `${i + 1}. ${ch.title}` : `🔒 Chapter ${i + 1}`));
+    box.appendChild(storyEl('p', '', isOpen ? ch.text : `Reach a best score of ${ch.at} to read on.`));
+    storyBody.appendChild(box);
+  });
+
+  seen[id] = openChapterCount(id);
+  storageSet(STORY_SEEN_KEY, JSON.stringify(seen));
+  refreshStoryBadge();
+}
+
+function openStory(id) {
+  if (game.state === 'running') {
+    showModeNote('Finish your run before reading');
+    return;
+  }
+  storyModal.hidden = false;
+  renderStory(id || game.character);
+  storyClose.focus();
+}
+if (storyBtn) {
+  storyBtn.addEventListener('click', () => openStory(game.character));
+  storyClose.addEventListener('click', closeModals);
+  storyModal.addEventListener('click', (e) => { if (e.target === storyModal) closeModals(); });
+  storyTabs.forEach((t) => t.addEventListener('click', () => renderStory(t.dataset.char)));
+  refreshStoryBadge();
+}
 
 /* ---------- mode toggle ---------- */
 function saveMode(m) {
