@@ -23,6 +23,13 @@ declare(strict_types=1);
 require __DIR__ . '/includes/db.php';
 require __DIR__ . '/includes/scores.php';
 $cfg = require __DIR__ . '/includes/config.php';
+require __DIR__ . '/includes/installer.php';
+
+// A fresh upload that nobody has configured goes to the installer first.
+if (installer_needed($cfg) && is_file(__DIR__ . '/install.php')) {
+    header('Location: install.php');
+    exit;
+}
 
 /* ----------------------------------------------------------------
  * Database bootstrap

@@ -1,0 +1,3 @@
+# Written by install.php; holds database credentials.
+includes/config.local.php
+includes/config.local.php.tmp*

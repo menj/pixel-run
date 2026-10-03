@@ -3,7 +3,9 @@
 ## To the four-character release (penguin and robot)
 
 Existing databases need one migration so scores from the new characters
-can be stored:
+can be stored. The simplest way is to run `install.php` once with the
+database's credentials: it keeps every score and applies this change
+automatically. To do it by hand instead:
 
 ```sql
 ALTER TABLE scores
