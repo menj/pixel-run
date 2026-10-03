@@ -6,6 +6,14 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (stories)
+- Every character has a four-chapter story, opened with the 📖 STORY button.
+  Chapters unlock as the best score rises (Eeny and Meeny at 0, 100, 300 and
+  600; Miney from 300; Mo from 600), a dot marks unread chapters, and the
+  game-over card announces a newly opened chapter. The text lives in
+  `assets/js/stories.js`, separate from the game code, so it is easy to edit
+  or translate.
+
 ### Added (gameplay)
 - Game feel: variable jump height (hold to climb higher), jump buffering (a
   press just before landing still jumps), landing squash and jump stretch,

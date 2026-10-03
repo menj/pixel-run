@@ -151,6 +151,11 @@ $assetVersion = h((string)$cfg['version']);
       </button>
     </div>
     <div class="toolbar-right">
+      <button id="story-btn" class="daily-btn story-btn" type="button"
+              title="Read the character's story">
+        <span class="daily-icon">📖</span>
+        <span class="daily-label">STORY</span>
+      </button>
       <button id="daily-btn" class="daily-btn" type="button" aria-pressed="false"
               title="Daily challenge: everyone gets the same course today">
         <span class="daily-icon">📅</span>
@@ -203,6 +208,24 @@ $assetVersion = h((string)$cfg['version']);
         </div>
         <button id="ov-again" class="ov-again" type="button" hidden>PLAY AGAIN</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Character stories. Content comes from assets/js/stories.js; the
+       sprite portrait and chapter list are rendered by game.js. -->
+  <div class="lb-modal" id="story-modal" hidden role="dialog" aria-modal="true" aria-labelledby="story-title">
+    <div class="lb-card story-card">
+      <header class="lb-header">
+        <h2 id="story-title">📖 STORY</h2>
+        <button id="story-close" class="lb-close" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="lb-tabs" role="tablist" id="story-tabs">
+        <button class="story-tab" data-char="dino" type="button">🦖 DINO</button>
+        <button class="story-tab" data-char="cat" type="button">🐱 CAT</button>
+        <button class="story-tab" data-char="penguin" type="button">🐧 PENGUIN</button>
+        <button class="story-tab" data-char="robot" type="button">🤖 BOT</button>
+      </div>
+      <div class="story-body" id="story-body"></div>
     </div>
   </div>
 
@@ -259,6 +282,7 @@ $assetVersion = h((string)$cfg['version']);
 
 <script type="application/json" id="pixel-run-config"><?= $serverDataJson ?></script>
 <script src="assets/js/sprites.js?v=<?= $assetVersion ?>"></script>
+<script src="assets/js/stories.js?v=<?= $assetVersion ?>"></script>
 <script src="assets/js/game.js?v=<?= $assetVersion ?>"></script>
 
 </body>
