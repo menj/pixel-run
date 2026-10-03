@@ -8,7 +8,8 @@
  *     "score":        1234,
  *     "character":    "dino" | "cat" | "penguin" | "robot",
  *     "obstacles":    42,
- *     "duration_ms":  67000
+ *     "duration_ms":  67000,
+ *     "challenge":    "2026-10-03"   (optional: UTC date of a daily course)
  *   }
  *
  * Returns:
@@ -56,6 +57,9 @@ try {
 
     if ($result['ok']) {
         send_json($result, 200);
+    }
+    if (($result['error'] ?? '') === 'database_unavailable') {
+        send_json($result + ['offline' => true], 503);
     }
     $status = ($result['error'] ?? '') === 'rate_limited' ? 429 : 400;
     send_json($result, $status);

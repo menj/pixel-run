@@ -205,16 +205,46 @@ function installer_install(array $db, bool $createDb): void
         foreach (installer_schema_statements(dirname(__DIR__) . '/sql/schema.sql') as $stmt) {
             $pdo->exec($stmt);
         }
-        // Tables from earlier releases may predate the newer characters.
-        $enum = implode(',', array_map(
-            static fn(string $c): string => "'" . $c . "'",
-            PIXEL_RUN_CHARACTERS
-        ));
-        $pdo->exec(
-            "ALTER TABLE scores MODIFY character_type ENUM($enum) NOT NULL DEFAULT 'dino'"
-        );
+        installer_migrate($pdo);
     } catch (Throwable $e) {
         throw new RuntimeException(installer_explain($e));
+    }
+}
+
+/**
+ * Bring an existing scores table up to date: the full character list and the
+ * daily-challenge column. Idempotent, and it never touches existing rows.
+ */
+function installer_migrate(PDO $pdo): void
+{
+    $enum = implode(',', array_map(
+        static fn(string $c): string => "'" . $c . "'",
+        PIXEL_RUN_CHARACTERS
+    ));
+    $pdo->exec("ALTER TABLE scores MODIFY character_type ENUM($enum) NOT NULL DEFAULT 'dino'");
+
+    if (!installer_has_challenge_column($pdo)) {
+        $pdo->exec(
+            'ALTER TABLE scores
+               ADD COLUMN challenge_date DATE DEFAULT NULL,
+               ADD INDEX idx_challenge (challenge_date, score)'
+        );
+    }
+}
+
+function installer_has_challenge_column(PDO $pdo): bool
+{
+    return $pdo->query("SHOW COLUMNS FROM scores LIKE 'challenge_date'")->fetch() !== false;
+}
+
+/** True when the database is reachable but predates the current schema. */
+function installer_schema_outdated(array $cfg): bool
+{
+    try {
+        $pdo = installer_connect($cfg['db'] ?? []);
+        return !installer_has_challenge_column($pdo);
+    } catch (Throwable $e) {
+        return false;
     }
 }
 

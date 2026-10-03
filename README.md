@@ -2,7 +2,7 @@
 
 A pixel-art endless runner in the spirit of the browser offline game, with
 a colour day-and-night cycle, four playable characters (Eeny the dino,
-Meeny the tabby cat, Miney the penguin and Mo the robot), bomb and shield pickups, synthesised sound, and an optional global
+Meeny the tabby cat, Miney the penguin and Mo the bot), bomb and shield pickups, synthesised sound, and an optional global
 leaderboard backed by MySQL and PHP.
 
 Version 1.0.0. See `CHANGELOG.md` for release notes and `UPGRADING.md`
@@ -17,9 +17,20 @@ if you deployed an earlier draft package.
 
 Both pages load the same `assets/` files, so gameplay is identical.
 
+## Playing
+
+Space or ↑ jumps (hold to jump higher), ↓ ducks, R restarts, M mutes. On
+touch screens use the on-screen buttons or tap the game. Each character has
+a trait (Miney glides while jump is held, Mo starts with a shield). Miney
+and Mo unlock at best scores of 300 and 600. The 📅 DAILY button plays a
+shared seeded course that changes each UTC day, with its own leaderboard
+tab.
+
 ## Characters
 
-Eeny (dino), Meeny (tabby cat), Miney (penguin) and Mo (robot). The
+Eeny (dino), Meeny (tabby cat), Miney (penguin) and Mo (bot). They are
+labelled DINO, CAT, PENGUIN and BOT in the picker and leaderboard, and
+called by name in in-game text. The
 internal ids `dino`, `cat`, `penguin` and `robot` are what the database and
 API store, so renaming a character on screen never needs a migration.
 

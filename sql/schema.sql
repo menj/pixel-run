@@ -20,10 +20,12 @@ CREATE TABLE IF NOT EXISTS scores (
   ip_hash         CHAR(64)           NOT NULL,
   user_agent      VARCHAR(255)       DEFAULT NULL,
   created_at      DATETIME           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  challenge_date  DATE               DEFAULT NULL,   -- set for daily-challenge runs
   INDEX idx_score   (score DESC),
   INDEX idx_char    (character_type, score DESC),
   INDEX idx_ip      (ip_hash, created_at),
-  INDEX idx_created (created_at)
+  INDEX idx_created (created_at),
+  INDEX idx_challenge (challenge_date, score DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================

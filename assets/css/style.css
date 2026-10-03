@@ -857,3 +857,40 @@
     .touch-controls .touch-btn.touch-jump { margin-left: auto; }
     .overlay.is-over { position: absolute; }
   }
+
+  /* ============================================================
+     Character locks and the daily-challenge toggle
+     ============================================================ */
+  .char-btn.locked { opacity: 0.55; }
+  .char-btn.locked .char-emoji { filter: grayscale(1) opacity(0.5); }
+  .char-btn.locked::after { content: '🔒'; font-size: 12px; margin-left: 2px; }
+
+  .daily-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: linear-gradient(180deg, rgba(42,27,77,0.9), rgba(26,15,46,0.9));
+    color: rgba(255,255,255,0.65);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.15s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .daily-btn:hover { color: #fff; transform: translateY(-1px); }
+  .daily-btn .daily-icon { font-size: 16px; line-height: 1; }
+  .daily-btn.active {
+    color: #fff;
+    border-color: rgba(255,215,0,0.7);
+    box-shadow: 0 0 0 1px rgba(255,215,0,0.35), 0 8px 24px -10px rgba(255,215,0,0.5);
+    background: linear-gradient(180deg, #4a3a14, #231a08);
+  }
+  .daily-btn:focus-visible { outline: 2px solid #FFD700; outline-offset: 2px; }
+
+  @media (max-width: 640px) {
+    .char-btn.locked::after { position: absolute; margin: 0; transform: translate(26px, -14px); }
+    .char-btn { position: relative; }
+  }
