@@ -280,7 +280,7 @@ function installer_needed(array $cfg): bool
  * Settings file
  * --------------------------------------------------------------*/
 
-function installer_config_source(array $db, string $salt): string
+function installer_config_source(array $db, string $salt, string $adminHash = ''): string
 {
     $export = static fn($v): string => var_export($v, true);
     return "<?php\n"
@@ -298,6 +298,7 @@ function installer_config_source(array $db, string $salt): string
         . "        'charset' => 'utf8mb4',\n"
         . "    ],\n"
         . "    'ip_salt' => " . $export($salt) . ",\n"
+        . ($adminHash !== '' ? "    'admin_password_hash' => " . $export($adminHash) . ",\n" : '')
         . "];\n";
 }
 
