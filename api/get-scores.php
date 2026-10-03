@@ -4,7 +4,7 @@
  *
  * Query params:
  *   limit     1..max_limit      (default: default_limit)
- *   character "dino" | "cat" | "all"  (default: "all")
+ *   character "dino" | "cat" | "penguin" | "robot" | "all"  (default: "all")
  *
  * Returns:
  *   200 { scores: [ ... ], total: 142 }
@@ -27,7 +27,7 @@ $limit = (int)($_GET['limit'] ?? $cfg['default_limit']);
 $limit = max(1, min((int)$cfg['max_limit'], $limit));
 
 $character = (string)($_GET['character'] ?? 'all');
-$filter = in_array($character, ['dino', 'cat'], true) ? $character : null;
+$filter = in_array($character, PIXEL_RUN_CHARACTERS, true) ? $character : null;
 
 try {
     $pdo    = db_connect($cfg['db']);

@@ -1,5 +1,18 @@
 # Upgrading
 
+## To the four-character release (penguin and robot)
+
+Existing databases need one migration so scores from the new characters
+can be stored:
+
+```sql
+ALTER TABLE scores
+  MODIFY character_type ENUM('dino','cat','penguin','robot') NOT NULL DEFAULT 'dino';
+```
+
+Until it runs, submitting a penguin or robot score fails; the game
+itself still works. New installs get the updated `sql/schema.sql`.
+
 ## From an unversioned draft package to 1.0.0
 
 The database schema is unchanged; no migration is needed.

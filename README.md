@@ -1,8 +1,8 @@
 # Pixel Run
 
 A pixel-art endless runner in the spirit of the browser offline game, with
-a colour day-and-night cycle, two playable characters (T-Rex and tabby
-cat), bomb and shield pickups, synthesised sound, and an optional global
+a colour day-and-night cycle, four playable characters (T-Rex, tabby
+cat, penguin and robot), bomb and shield pickups, synthesised sound, and an optional global
 leaderboard backed by MySQL and PHP.
 
 Version 1.0.0. See `CHANGELOG.md` for release notes and `UPGRADING.md`

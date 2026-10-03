@@ -1,6 +1,6 @@
 /* ============================================================
    PIXEL RUN — COLOUR EDITION
-   A vivid take on the offline runner. Switch between dino & cat.
+   A vivid take on the offline runner. Switch between dino, cat, penguin & robot.
    Backend: PHP server-side rendering + AJAX leaderboard updates.
    Requires assets/js/sprites.js to be loaded first.
    ============================================================ */
@@ -210,7 +210,7 @@ const COL = {
 /* ---------- world / state ---------- */
 const game = {
   state: 'idle',     // idle | running | over
-  character: 'dino', // 'dino' | 'cat'
+  character: 'dino', // 'dino' | 'cat' | 'penguin' | 'robot'
   speed: 2.5,        // gentle stroll to start
   maxSpeed: 11,      // softer ceiling
   speedGrow: 0.0002,  // very slow passive ramp
@@ -361,7 +361,7 @@ function blit(img, x, y) {
 
 /* ---------- drawing: player (dino or cat) ---------- */
 function drawPlayer() {
-  const set = game.character === 'cat' ? 'cat' : 'dino';
+  const set = SPR.normal[game.character] ? game.character : 'dino';
   const flash = dino.hurtFlash > 0 && (dino.hurtFlash % 6 < 3);
   const frames = flash ? SPR.flash[set] : SPR.normal[set];
   const phaseA = Math.floor(game.tick / 5) % 2 === 0;
@@ -957,6 +957,8 @@ async function loadLeaderboard(filter = 'all') {
   }
 }
 
+const CHAR_ICONS = { dino: '🦖', cat: '🐱', penguin: '🐧', robot: '🤖' };
+
 function renderLeaderboard(scores, total) {
   if (!scores || scores.length === 0) {
     lbList.innerHTML = '<p class="lb-empty">No scores yet. Be the first!</p>';
@@ -965,7 +967,7 @@ function renderLeaderboard(scores, total) {
   }
   const rows = scores.map((row, i) => {
     const rank = i + 1;
-    const icon = row.character_type === 'cat' ? '🐱' : '🦖';
+    const icon = CHAR_ICONS[row.character_type] || CHAR_ICONS.dino;
     const name = escapeHtml(row.player_name);
     const score = pad(parseInt(row.score, 10));
     return `

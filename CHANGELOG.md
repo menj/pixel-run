@@ -11,6 +11,9 @@ project uses [Semantic Versioning](https://semver.org/).
   upright body, tiny forearms and thick legs. Hitboxes are unchanged.
 
 ### Added
+- Two new playable characters, a penguin and a robot, with picker buttons
+  and leaderboard tabs. Existing databases need the `ALTER TABLE` in
+  `UPGRADING.md`.
 - Idle bob on the title screen, with a swoosh sound on start and restart.
 - Game-over medals (bronze 100, silver 300, gold 600) and a NEW BEST badge,
   coloured through CSS variables in `assets/css/style.css`.

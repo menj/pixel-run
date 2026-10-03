@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS scores (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   player_name     VARCHAR(20)        NOT NULL,
   score           INT UNSIGNED       NOT NULL,
-  character_type  ENUM('dino','cat') NOT NULL DEFAULT 'dino',
+  character_type  ENUM('dino','cat','penguin','robot') NOT NULL DEFAULT 'dino',
   obstacles       INT UNSIGNED       NOT NULL DEFAULT 0,
   duration_ms     INT UNSIGNED       NOT NULL DEFAULT 0,
   ip_hash         CHAR(64)           NOT NULL,

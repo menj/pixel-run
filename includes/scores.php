@@ -9,11 +9,14 @@
 
 declare(strict_types=1);
 
+/** Playable characters; keep in sync with the ENUM in sql/schema.sql. */
+const PIXEL_RUN_CHARACTERS = ['dino', 'cat', 'penguin', 'robot'];
+
 /**
  * Fetch the top N scores, optionally filtered by character.
  *
  * @param PDO         $pdo
- * @param string|null $character 'dino' | 'cat' | null for all
+ * @param string|null $character one of PIXEL_RUN_CHARACTERS, or null for all
  * @param int         $limit
  * @return array<int, array{player_name:string,score:int,character_type:string,created_at:string}>
  */
@@ -22,7 +25,7 @@ function fetch_top_scores(PDO $pdo, ?string $character, int $limit): array
     $limit = max(1, min(100, $limit));
     $where  = '';
     $params = [];
-    if ($character === 'dino' || $character === 'cat') {
+    if (in_array($character, PIXEL_RUN_CHARACTERS, true)) {
         $where    = 'WHERE character_type = ?';
         $params[] = $character;
     }
@@ -41,7 +44,7 @@ function fetch_top_scores(PDO $pdo, ?string $character, int $limit): array
  */
 function fetch_total_count(PDO $pdo, ?string $character = null): int
 {
-    if ($character === 'dino' || $character === 'cat') {
+    if (in_array($character, PIXEL_RUN_CHARACTERS, true)) {
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM scores WHERE character_type = ?');
         $stmt->execute([$character]);
         return (int)$stmt->fetchColumn();
@@ -77,7 +80,7 @@ function validate_score_payload(array $input, array $cfg): array
     }
 
     $character = (string)($input['character'] ?? 'dino');
-    if (!in_array($character, ['dino', 'cat'], true)) {
+    if (!in_array($character, PIXEL_RUN_CHARACTERS, true)) {
         return ['ok' => false, 'error' => 'invalid_character'];
     }
 
