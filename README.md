@@ -55,11 +55,12 @@ Fonts stylesheet; the page never contacts an API.
 
 ### Quickest: the web installer
 
-Upload the package, create an empty MySQL/MariaDB database and user in
-your hosting panel, then open the site. First-time visitors are sent to
-`install.php`, which checks the server, asks for the database details,
-creates the tables and writes `includes/config.local.php` with a random
-`ip_salt`. Once the game can reach its database the installer locks
+The game always runs, with or without a database: until one is set up it
+plays in local-only mode with a link to the installer. To enable the
+leaderboard, create an empty MySQL/MariaDB database and user in your
+hosting panel and open `install.php`. It checks the server, asks for the
+database details, creates the tables and writes
+`includes/config.local.php` with a random `ip_salt`. Once the game can reach its database the installer locks
 itself; you can delete `install.php` afterwards. Re-running it on an
 existing database keeps all scores and upgrades the table if needed.
 

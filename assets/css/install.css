@@ -145,3 +145,6 @@ code { padding: 1px 5px; border-radius: 4px; background: var(--code-bg); font-si
   .grid { flex-direction: column; gap: 0; }
   .grid .narrow { flex: 1; }
 }
+
+.skip { margin-left: 14px; color: var(--muted); font-size: 14px; }
+.skip:hover { color: var(--text); }

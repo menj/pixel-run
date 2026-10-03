@@ -14,8 +14,8 @@ project uses [Semantic Versioning](https://semver.org/).
 ### Added
 - Web installer (`install.php`): checks requirements, creates or upgrades the
   tables from `sql/schema.sql`, and writes credentials and a random `ip_salt`
-  to `includes/config.local.php`. Fresh uploads redirect to it; it locks once
-  the database is reachable. `config.php` now merges that file over its
+  to `includes/config.local.php`. Fresh uploads play locally with a link to it
+  (no forced redirect); it locks once the database is reachable. `config.php` now merges that file over its
   defaults.
 - Two new playable characters, a penguin and a robot, with picker buttons
   and leaderboard tabs. Existing databases need the `ALTER TABLE` in

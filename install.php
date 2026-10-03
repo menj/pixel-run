@@ -145,7 +145,8 @@ $order = array_keys($steps);
       <?php endforeach; ?>
     </ul>
     <?php if ($canRun): ?>
-      <p><a class="btn" href="?step=database">Continue</a></p>
+      <p><a class="btn" href="?step=database">Continue</a>
+         <a class="skip" href="./">Skip and play offline</a></p>
     <?php else: ?>
       <p class="error">Fix the items marked in red, then reload this page.</p>
     <?php endif; ?>
@@ -185,7 +186,8 @@ $order = array_keys($steps);
       <p class="hint">Existing scores are never touched. After setup you may
         reduce this user to <code>SELECT</code> and <code>INSERT</code> on
         <code>scores</code>.</p>
-      <p><button class="btn" type="submit">Install</button></p>
+      <p><button class="btn" type="submit">Install</button>
+         <a class="skip" href="./">Skip and play offline</a></p>
     </form>
   </section>
 
