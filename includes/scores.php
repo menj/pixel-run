@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-/** Playable characters; keep in sync with the ENUM in sql/schema.sql. */
+/** Playable characters; keep in sync with the ENUM in sql/schema.sql (MySQL only; other drivers store plain text). */
 const PIXEL_RUN_CHARACTERS = ['dino', 'cat', 'penguin', 'robot'];
 
 /**
@@ -22,7 +22,13 @@ function scores_has_challenge(PDO $pdo): bool
     static $cache = [];
     $key = spl_object_id($pdo);
     if (!isset($cache[$key])) {
-        $cache[$key] = $pdo->query("SHOW COLUMNS FROM scores LIKE 'challenge_date'")->fetch() !== false;
+        // Portable across MySQL, PostgreSQL and SQLite: just ask for the column.
+        try {
+            $pdo->query('SELECT challenge_date FROM scores WHERE 1 = 0');
+            $cache[$key] = true;
+        } catch (PDOException $e) {
+            $cache[$key] = false;
+        }
     }
     return $cache[$key];
 }
@@ -196,11 +202,19 @@ function validate_score_payload(array $input, array $cfg): array
  */
 function is_rate_limited(PDO $pdo, string $ipHash, int $minSeconds): bool
 {
-    $stmt = $pdo->prepare(
-        'SELECT TIMESTAMPDIFF(SECOND, MAX(created_at), NOW()) AS gap
-           FROM scores
-          WHERE ip_hash = ?'
-    );
+    // Seconds since this client's latest row, computed by the database so the
+    // comparison uses one clock; the expression differs per driver.
+    switch ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME)) {
+        case 'pgsql':
+            $gap = 'EXTRACT(EPOCH FROM (NOW() - MAX(created_at)))';
+            break;
+        case 'sqlite':
+            $gap = "(CAST(strftime('%s', 'now') AS INTEGER) - CAST(strftime('%s', MAX(created_at)) AS INTEGER))";
+            break;
+        default:
+            $gap = 'TIMESTAMPDIFF(SECOND, MAX(created_at), NOW())';
+    }
+    $stmt = $pdo->prepare("SELECT $gap AS gap FROM scores WHERE ip_hash = ?");
     $stmt->execute([$ipHash]);
     $row = $stmt->fetch();
     return $row && $row['gap'] !== null && (int)$row['gap'] < $minSeconds;

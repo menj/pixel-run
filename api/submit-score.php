@@ -38,7 +38,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 $body = read_json_body();
 
 // Validate before opening the database connection, so a malformed payload
-// receives 400 even while MySQL is unavailable.
+// receives 400 even while the database is unavailable.
 $check = validate_score_payload($body, $cfg);
 if (!$check['ok']) {
     send_json(['ok' => false, 'error' => $check['error']], 400);

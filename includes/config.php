@@ -15,6 +15,10 @@ $config = [
     'version' => '1.0.0',
 
     'db' => [
+        // 'mysql' (MySQL or MariaDB), 'pgsql' (PostgreSQL) or 'sqlite'.
+        'driver'  => 'mysql',
+        // SQLite only: file path, relative to the app root or absolute.
+        'path'    => '',
         'host'    => '127.0.0.1',
         'name'    => 'pixel_run',
         'user'    => 'pixel_run_app',
@@ -72,6 +76,8 @@ if (is_file($local)) {
 // True once somebody has supplied real database credentials, either through
 // install.php or by editing the defaults above. While false, the game runs
 // in local-only mode and never tries to connect.
-$config['configured'] = $config['db']['pass'] !== 'CHANGE_THIS_PASSWORD';
+$config['configured'] = (($config['db']['driver'] ?? 'mysql') === 'sqlite')
+    ? !empty($config['db']['path'])
+    : $config['db']['pass'] !== 'CHANGE_THIS_PASSWORD';
 
 return $config;

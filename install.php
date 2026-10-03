@@ -44,11 +44,14 @@ $canRun   = installer_can_run();
 
 // Form defaults: reuse whatever config.php or config.local.php already holds.
 $pre = $cfg['db'];
+$preDriver = db_driver($pre);
 $form = [
+    'db_driver' => installer_driver_available($preDriver) ? $preDriver : installer_default_driver(),
     'db_host'   => (string)$pre['host'],
-    'db_port'   => (string)($pre['port'] ?? 3306),
+    'db_port'   => '',   // blank = the usual port for the chosen database
     'db_name'   => (string)$pre['name'],
-    'db_user'   => ($pre['pass'] === PIXEL_RUN_PLACEHOLDER_PASS) ? '' : (string)$pre['user'],
+    'db_user'   => $cfg['configured'] ? (string)$pre['user'] : '',
+    'db_path'   => (string)($pre['path'] ?: installer_default_sqlite_path()),
     'create_db' => '1',
 ];
 
@@ -64,7 +67,11 @@ if (installer_is_installed($cfg)) {
     if ($method === 'POST' && ($_POST['action'] ?? '') === 'upgrade'
         && hash_equals($token, (string)($_POST['token'] ?? ''))) {
         try {
-            installer_migrate(installer_connect($cfg['db']));
+            $upgradePdo = installer_open_configured($cfg);
+            if ($upgradePdo === null) {
+                throw new RuntimeException('database unavailable');
+            }
+            installer_migrate($upgradePdo);
             $upgradeOk  = true;
             $upgradeMsg = 'Database updated. Your scores were not touched.';
         } catch (Throwable $ex) {
@@ -84,6 +91,9 @@ if (installer_is_installed($cfg)) {
         $step = 'database';
         foreach (array_keys($form) as $k) {
             $form[$k] = trim((string)($_POST[$k] ?? ''));
+        }
+        if ($form['db_driver'] === '') {
+            $form['db_driver'] = installer_default_driver();
         }
         $form['create_db'] = isset($_POST['create_db']) ? '1' : '';
         [$errors, $db] = installer_validate($_POST);
@@ -166,8 +176,9 @@ $order = array_keys($steps);
 <?php elseif ($step === 'requirements'): ?>
   <section>
     <h2>Before we start</h2>
-    <p>You will need a MySQL or MariaDB database and its username and password,
-       available from your hosting control panel.</p>
+    <p>Pick a database: MySQL or MariaDB, PostgreSQL (you will need its host,
+       name, username and password from your hosting panel), or SQLite, which
+       needs nothing but a writable folder.</p>
     <ul class="checks">
       <?php foreach ($requirements as $r):
         $cls = $r['ok'] ? 'ok' : (!empty($r['optional']) ? 'warn' : 'fail'); ?>
@@ -190,40 +201,67 @@ $order = array_keys($steps);
     <?php if ($notice): ?><p class="error" role="alert"><?= e($notice) ?></p><?php endif; ?>
     <form method="post" action="install.php" autocomplete="off" novalidate>
       <input type="hidden" name="token" value="<?= e($token) ?>">
-      <div class="grid">
-        <label class="field">Host
-          <input name="db_host" value="<?= e($form['db_host']) ?>" required>
-          <?php if (isset($errors['db_host'])): ?><span class="msg"><?= e($errors['db_host']) ?></span><?php endif; ?>
-        </label>
-        <label class="field narrow">Port
-          <input name="db_port" value="<?= e($form['db_port']) ?>" inputmode="numeric" required>
-          <?php if (isset($errors['db_port'])): ?><span class="msg"><?= e($errors['db_port']) ?></span><?php endif; ?>
-        </label>
+      <div class="tabs">
+        <?php foreach (installer_drivers() as $id => $d):
+          $ok = installer_driver_available($id); ?>
+          <input type="radio" id="drv-<?= $id ?>" name="db_driver" value="<?= $id ?>"
+                 <?= $form['db_driver'] === $id ? 'checked' : '' ?><?= $ok ? '' : ' disabled' ?>>
+        <?php endforeach; ?>
+        <div class="tablist" role="tablist" aria-label="Database type">
+          <?php foreach (installer_drivers() as $id => $d):
+            $ok = installer_driver_available($id); ?>
+            <label for="drv-<?= $id ?>"<?= $ok ? '' : ' class="off" title="PHP extension ' . e($d['ext']) . ' is not loaded"' ?>><?= e($d['label']) ?></label>
+          <?php endforeach; ?>
+        </div>
+        <?php if (isset($errors['db_driver'])): ?><p class="msg"><?= e($errors['db_driver']) ?></p><?php endif; ?>
+
+        <div class="panel panel-server">
+          <div class="grid">
+            <label class="field">Host
+              <input name="db_host" value="<?= e($form['db_host']) ?>">
+              <?php if (isset($errors['db_host'])): ?><span class="msg"><?= e($errors['db_host']) ?></span><?php endif; ?>
+            </label>
+            <label class="field narrow">Port
+              <input name="db_port" value="<?= e($form['db_port']) ?>" inputmode="numeric" placeholder="default">
+              <?php if (isset($errors['db_port'])): ?><span class="msg"><?= e($errors['db_port']) ?></span><?php endif; ?>
+            </label>
+          </div>
+          <label class="field">Database name
+            <input name="db_name" value="<?= e($form['db_name']) ?>">
+            <?php if (isset($errors['db_name'])): ?><span class="msg"><?= e($errors['db_name']) ?></span><?php endif; ?>
+          </label>
+          <label class="field">Username
+            <input name="db_user" value="<?= e($form['db_user']) ?>">
+            <?php if (isset($errors['db_user'])): ?><span class="msg"><?= e($errors['db_user']) ?></span><?php endif; ?>
+          </label>
+          <label class="field">Password
+            <input name="db_pass" type="password" autocomplete="new-password">
+          </label>
+          <label class="check">
+            <input type="checkbox" name="create_db" value="1"<?= $form['create_db'] === '1' ? ' checked' : '' ?>>
+            Create the database if it does not exist
+          </label>
+          <p class="hint">Existing scores are never touched. After setup you may
+            reduce this user to <code>SELECT</code> and <code>INSERT</code> on
+            <code>scores</code>.</p>
+        </div>
+
+        <div class="panel panel-sqlite">
+          <label class="field">Database file
+            <input name="db_path" value="<?= e($form['db_path']) ?>" spellcheck="false">
+            <?php if (isset($errors['db_path'])): ?><span class="msg"><?= e($errors['db_path']) ?></span><?php endif; ?>
+          </label>
+          <p class="hint">Created for you. The default folder, <code>data/</code>,
+            is blocked from downloads on Apache; on nginx deny it yourself, or
+            use an absolute path outside the web root.</p>
+        </div>
       </div>
-      <label class="field">Database name
-        <input name="db_name" value="<?= e($form['db_name']) ?>" required>
-        <?php if (isset($errors['db_name'])): ?><span class="msg"><?= e($errors['db_name']) ?></span><?php endif; ?>
-      </label>
-      <label class="field">Username
-        <input name="db_user" value="<?= e($form['db_user']) ?>" required>
-        <?php if (isset($errors['db_user'])): ?><span class="msg"><?= e($errors['db_user']) ?></span><?php endif; ?>
-      </label>
-      <label class="field">Password
-        <input name="db_pass" type="password" autocomplete="new-password">
-      </label>
       <label class="field">Admin password <span class="opt">(optional)</span>
         <input name="admin_pass" type="password" autocomplete="new-password">
         <?php if (isset($errors['admin_pass'])): ?><span class="msg"><?= e($errors['admin_pass']) ?></span><?php endif; ?>
       </label>
       <p class="hint">Enables <code>admin.php</code> and the in-game cheat code
         (god mode, never recorded). Leave blank for no admin.</p>
-      <label class="check">
-        <input type="checkbox" name="create_db" value="1"<?= $form['create_db'] === '1' ? ' checked' : '' ?>>
-        Create the database if it does not exist
-      </label>
-      <p class="hint">Existing scores are never touched. After setup you may
-        reduce this user to <code>SELECT</code> and <code>INSERT</code> on
-        <code>scores</code>.</p>
       <p><button class="btn" type="submit">Install</button>
          <a class="skip" href="./">Skip and play offline</a></p>
     </form>

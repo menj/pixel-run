@@ -3,7 +3,7 @@
 A pixel-art endless runner in the spirit of the browser offline game, with
 a colour day-and-night cycle, four playable characters (Eeny the dino,
 Meeny the tabby cat, Miney the penguin and Mo the bot), bomb and shield pickups, synthesised sound, and an optional global
-leaderboard backed by MySQL and PHP.
+leaderboard backed by MySQL/MariaDB, PostgreSQL or SQLite and PHP.
 
 Version 1.0.0. See `CHANGELOG.md` for release notes and `UPGRADING.md`
 if you deployed an earlier draft package.
@@ -12,7 +12,7 @@ if you deployed an earlier draft package.
 
 | Mode | Entry point | Needs | Leaderboard |
 |------|-------------|-------|-------------|
-| Full | `index.php` | Apache, PHP 7.4+, MySQL 5.7+ / MariaDB 10.3+ | Yes |
+| Full | `index.php` | PHP 7.4+ with a PDO driver for one of: MySQL 5.7+ / MariaDB 10.3+, PostgreSQL 9.5+, or SQLite 3 | Yes |
 | Standalone | `standalone.html` | Any static host, or open from disk | No |
 
 Both pages load the same `assets/` files, so gameplay is identical.
@@ -61,6 +61,7 @@ API store, so renaming a character on screen never needs a migration.
 pixel-run/
 ├── index.php              full version: renders the page, serves the form fallback
 ├── install.php            web installer (WordPress-style first-run wizard)
+├── data/                  SQLite database folder (blocked from downloads)
 ├── admin.php              admin sign-in for the cheat code
 ├── standalone.html        no-backend version: links the same assets
 ├── assets/
@@ -92,23 +93,46 @@ open the HTML file directly in a browser or upload both to any static
 host. Nothing else is required. The only outbound request is the Google
 Fonts stylesheet; the page never contacts an API.
 
-## Full deployment on LAMP
+## Databases
+
+The leaderboard works with any one of these, picked in the installer:
+
+| Database | PHP extension | Notes |
+|----------|---------------|-------|
+| MySQL / MariaDB | `pdo_mysql` | The default; `sql/schema.sql` |
+| PostgreSQL | `pdo_pgsql` | `sql/schema.pgsql.sql`; the installer can create the database |
+| SQLite | `pdo_sqlite` | `sql/schema.sqlite.sql`; no server, one file in `data/` |
+
+The choice is saved as `db.driver` (`mysql`, `pgsql` or `sqlite`) in
+`includes/config.local.php`; existing configs without it stay on MySQL.
+SQLite keeps its file under `data/` with a random name, and that folder is
+blocked from downloads on Apache. On nginx add a `deny all` rule for it, or
+set an absolute `db.path` outside the web root. Back up SQLite by copying
+the file (and its `-wal` file if present).
+
+## Full deployment
+
 
 ### Quickest: the web installer
 
 The game always runs, with or without a database: until one is set up it
 plays in local-only mode with a link to the installer. To enable the
-leaderboard, create an empty MySQL/MariaDB database and user in your
-hosting panel and open `install.php`. It checks the server, asks for the
-database details, creates the tables and writes
-`includes/config.local.php` with a random `ip_salt`. Once the game can reach its database the installer locks
+leaderboard, open `install.php`. It checks the server, lets you pick
+MySQL/MariaDB, PostgreSQL or SQLite, asks for the details (SQLite needs
+none), creates the tables and writes `includes/config.local.php` with a
+random `ip_salt`. For MySQL or PostgreSQL create the user in your hosting
+panel first. Once the game can reach its database the installer locks
 itself; you can delete `install.php` afterwards. Re-running it on an
 existing database keeps all scores and upgrades the table if needed.
 
 If `includes/` is not writable, the installer shows the settings file to
 save by hand. Prefer the command line? Follow the manual steps below.
 
-### Manual setup
+### Manual setup (MySQL / MariaDB)
+
+For PostgreSQL run `sql/schema.pgsql.sql` with `psql`; for SQLite run
+`sql/schema.sqlite.sql` with `sqlite3`. Then set `db.driver` (and `db.path`
+for SQLite) in `includes/config.local.php`.
 
 ### 1. Create the database
 
@@ -151,7 +175,7 @@ On RHEL, AlmaLinux and CentOS use `apache:apache` in place of
 ### 5. Verify
 
 Visit `https://yourdomain.com/pixel-run/`. The toolbar shows
-**🌐 ONLINE** when MySQL is reachable and **📴 OFFLINE** when it is not;
+**🌐 ONLINE** when the database is reachable and **📴 OFFLINE** when it is not;
 the page renders either way.
 
 ```bash
@@ -166,7 +190,7 @@ curl -X POST https://yourdomain.com/pixel-run/api/submit-score.php \
 
 ## How it is organised
 
-**One entry point.** `index.php` connects to MySQL, handles the no-JS
+**One entry point.** `index.php` connects to the database, handles the no-JS
 form POST (Post-Redirect-Get, redirect target taken from `SCRIPT_NAME`),
 fetches the top twenty scores, and renders the page. If the connection
 fails the exception is logged and the page renders in offline mode.
