@@ -6,6 +6,11 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed (copy)
+- Rewrote the description, tagline ("Pick a hero. Outrun the desert."), tags,
+  share text and page titles. `game.json` gains `summary` and `badges` fields
+  for hub cards, and the share image carries the new tagline.
+
 ### Added (arcade hub readiness)
 - Each finished run updates the shared `arcade.stats` record in localStorage
   (best, plays, last score, last played) so a hub on the same domain can show

@@ -2,8 +2,28 @@
   "schema": 1,
   "id": "pixel-run",
   "title": "Pixel Run",
-  "tagline": "Jump the cacti. Duck the birds. Pick your hero.",
-  "description": "A pixel-art endless runner with four heroes (Eeny, Meeny, Miny and Moe), a day and night cycle, a daily challenge, character stories and an optional leaderboard.",
+  "tagline": "Pick a hero. Outrun the desert.",
+  "summary": "Dodge cacti, duck birds and beat the daily course in this funny pixel-art runner. Pick from four heroes, unlock more and climb the leaderboard. Free.",
+  "description": "Pixel Run is a fast, funny pixel-art endless runner. Sprint across a desert that drifts from dawn to a starlit night, leap the cacti, duck the birds and grab bombs and shields as the pace climbs. Pick from four heroes: Eeny the dino, Meeny the cat, Miny the penguin and Moe the bot. Each has a skill of their own, a short story to unlock and a very dramatic way of falling over. Race the same daily course as everyone else, climb the leaderboard, and unlock new runners as your best score grows. Play with a keyboard, or on a phone or tablet. It's free, and it works offline.",
+  "badges": [
+    "Daily challenge",
+    "Four heroes",
+    "Power-ups",
+    "Stories",
+    "Free to play"
+  ],
+  "tags": [
+    "endless-runner",
+    "pixel-art",
+    "arcade",
+    "daily-challenge",
+    "leaderboard",
+    "characters",
+    "one-button",
+    "mobile-friendly",
+    "browser-game",
+    "free"
+  ],
   "version": "1.0.0",
   "url": "./",
   "standalone": "standalone.html",
@@ -11,9 +31,20 @@
   "icon": "assets/img/icon-192.png",
   "shareImage": "assets/img/og.png",
   "themeColor": "#0d0221",
-  "tags": ["arcade", "runner", "pixel-art", "endless"],
   "players": 1,
-  "input": { "keyboard": true, "touch": true, "gamepad": false },
-  "features": ["leaderboard", "daily-challenge", "stories", "offline-play"],
-  "requires": { "php": "optional", "database": "optional" }
+  "input": {
+    "keyboard": true,
+    "touch": true,
+    "gamepad": false
+  },
+  "features": [
+    "leaderboard",
+    "daily-challenge",
+    "stories",
+    "offline-play"
+  ],
+  "requires": {
+    "php": "optional",
+    "database": "optional"
+  }
 }

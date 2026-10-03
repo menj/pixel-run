@@ -140,12 +140,12 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <base href="<?= h($baseDir) ?>">
-<title>Pixel Run — Colour Edition</title>
-<meta name="description" content="Pixel Run: a pixel-art endless runner with four heroes, a day and night cycle, a daily challenge and a leaderboard.">
+<title>Pixel Run — Free Pixel-Art Endless Runner</title>
+<meta name="description" content="Dodge cacti, duck birds and beat the daily course in this funny pixel-art runner. Pick from four heroes, unlock more and climb the leaderboard. Free.">
 <meta name="theme-color" content="#0d0221">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Pixel Run">
-<meta property="og:description" content="Jump the cacti, duck the birds, and pick your hero: Eeny, Meeny, Miny or Moe.">
+<meta property="og:title" content="Pixel Run: Pick a hero. Outrun the desert.">
+<meta property="og:description" content="Dodge cacti, duck birds and beat the daily course with Eeny, Meeny, Miny or Moe.">
 <meta property="og:url" content="<?= h($publicUrl) ?>">
 <meta property="og:image" content="<?= h($publicUrl) ?>assets/img/og.png">
 <meta property="og:image:width" content="1200">
