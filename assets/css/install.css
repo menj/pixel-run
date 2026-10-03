@@ -148,3 +148,10 @@ code { padding: 1px 5px; border-radius: 4px; background: var(--code-bg); font-si
 
 .skip { margin-left: 14px; color: var(--muted); font-size: 14px; }
 .skip:hover { color: var(--text); }
+
+.ok-note {
+  padding: 10px 12px;
+  border-left: 3px solid var(--ok);
+  border-radius: 4px;
+  background: var(--code-bg);
+}

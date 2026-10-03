@@ -135,22 +135,27 @@ $assetVersion = h((string)$cfg['version']);
     <div class="char-picker" role="tablist" aria-label="Choose character">
       <button class="char-btn active" data-char="dino" type="button">
         <span class="char-emoji">🦖</span>
-        <span class="char-label">EENY</span>
+        <span class="char-label">DINO</span>
       </button>
       <button class="char-btn" data-char="cat" type="button">
         <span class="char-emoji">🐱</span>
-        <span class="char-label">MEENY</span>
+        <span class="char-label">CAT</span>
       </button>
       <button class="char-btn" data-char="penguin" type="button">
         <span class="char-emoji">🐧</span>
-        <span class="char-label">MINEY</span>
+        <span class="char-label">PENGUIN</span>
       </button>
       <button class="char-btn" data-char="robot" type="button">
         <span class="char-emoji">🤖</span>
-        <span class="char-label">MO</span>
+        <span class="char-label">BOT</span>
       </button>
     </div>
     <div class="toolbar-right">
+      <button id="daily-btn" class="daily-btn" type="button" aria-pressed="false"
+              title="Daily challenge: everyone gets the same course today">
+        <span class="daily-icon">📅</span>
+        <span class="daily-label">DAILY</span>
+      </button>
       <button id="sound-btn" class="sound-btn" type="button"
               aria-pressed="false" title="Sound on — click to mute">
         <span class="sound-icon">🔊</span>
@@ -211,10 +216,11 @@ $assetVersion = h((string)$cfg['version']);
       </header>
       <div class="lb-tabs" role="tablist">
         <button class="lb-tab active" data-filter="all" type="button">ALL</button>
-        <button class="lb-tab" data-filter="dino" type="button">🦖 EENY</button>
-        <button class="lb-tab" data-filter="cat" type="button">🐱 MEENY</button>
-        <button class="lb-tab" data-filter="penguin" type="button">🐧 MINEY</button>
-        <button class="lb-tab" data-filter="robot" type="button">🤖 MO</button>
+        <button class="lb-tab" data-filter="dino" type="button">🦖 DINO</button>
+        <button class="lb-tab" data-filter="cat" type="button">🐱 CAT</button>
+        <button class="lb-tab" data-filter="penguin" type="button">🐧 PENGUIN</button>
+        <button class="lb-tab" data-filter="robot" type="button">🤖 BOT</button>
+        <button class="lb-tab" data-filter="daily" type="button">📅 TODAY</button>
       </div>
       <div class="lb-list" id="lb-list"></div>
       <p class="lb-foot" id="lb-foot"></p>

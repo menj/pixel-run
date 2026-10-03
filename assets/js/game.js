@@ -1,6 +1,6 @@
 /* ============================================================
    PIXEL RUN — COLOUR EDITION
-   A vivid take on the offline runner. Pick Eeny, Meeny, Miney or Mo.
+   A vivid take on the offline runner. Pick your runner.
    Backend: PHP server-side rendering + AJAX leaderboard updates.
    Requires assets/js/sprites.js to be loaded first.
    ============================================================ */
@@ -35,6 +35,7 @@ let TOTAL_RUNS    = parseInt(SERVER.totalRuns || 0, 10);
 const MODE_KEY = 'pixel_run_mode';
 const MUTE_KEY = 'pixel_run_muted';
 const HI_KEY   = 'pixel_run_hi';
+const DAILY_KEY = 'pixel_run_daily_';   // + UTC date
 const NAME_KEY = 'pixel_run_name';
 
 function storageGet(key) {
@@ -228,17 +229,71 @@ const game = {
   bombFlash: 0,       // screen flash from bomb pickup
   flashCD: 0,         // gold milestone flash
   hitFlash: 0,        // white flash on collision
+  shake: 0,           // screen-shake ticks left after a crash
+  jumpBuf: 0,         // ticks a too-early jump press stays queued
+  mode: 'normal',     // 'normal' | 'daily'
+  dailyDate: '',      // UTC date (YYYY-MM-DD) of the current daily course
+  dailyBest: 0,       // best score on today's course, this device
   overTimer: 0,       // pending game-over panel timeout id
   nextMilestone: 100, // next score that triggers the milestone flash
 };
 
+/* ---------- gameplay RNG (seeded for the daily challenge) ---------- */
+// Only decisions that change the course (obstacle type, spacing, gifts) use
+// rnd(); particles and scenery keep Math.random so they never disturb it.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashSeed(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+let rnd = Math.random;
+function utcDate() { return new Date().toISOString().slice(0, 10); }
+
+/* ---------- characters: names, traits and unlocks ---------- */
+// Ids are stored in the database and API and never change; names are what
+// players see. unlock is the best score needed (the silver and gold medal
+// marks). The daily challenge turns traits off so every run is equal.
+const CHARACTERS = {
+  dino:    { name: 'Eeny',   blurb: 'Balanced',             unlock: 0 },
+  cat:     { name: 'Meeny',  blurb: 'Jumps 10% higher',     unlock: 0,   jump: 1.1 },
+  penguin: { name: 'Miney',  blurb: 'Hold jump to glide',   unlock: 300, glide: true },
+  robot:   { name: 'Mo',     blurb: 'Starts with a shield', unlock: 600, startShield: 180 },
+};
+function trait() {
+  if (game.mode === 'daily') return CHARACTERS.dino;
+  return CHARACTERS[game.character] || CHARACTERS.dino;
+}
+function isUnlocked(id) {
+  const c = CHARACTERS[id];
+  return !!c && game.hi >= c.unlock;
+}
+
 /* ---------- player ---------- */
 const GRAVITY = 0.7;
 const JUMP_V  = -13.5;
+const JUMP_CUT_V = -8;     // releasing jump early caps the climb here (variable height)
+const JUMP_BUFFER = 7;     // ticks a press just before landing is remembered
+const GLIDE_G = 0.28;      // gravity while gliding
+const GLIDE_MAX_FALL = 3.6;
 const STAND_H = 48;   // standing sprite height (sprites.js: 22 rows + outline, x2)
 const DUCK_H  = 28;   // ducking sprite height (12 rows + outline, x2)
 
 const dino = {
+  jumpHeld: false,
+  squash: 0,
   x: 70,
   y: GROUND_Y - STAND_H,
   w: 48,
@@ -360,6 +415,13 @@ function blit(img, x, y) {
   ctx.drawImage(img, Math.round(x), Math.round(y));
 }
 
+// Draw a sprite scaled around its feet (bottom centre) for squash and stretch.
+function blitScaled(img, x, y, sx, sy) {
+  if (sx === 1 && sy === 1) { blit(img, x, y); return; }
+  const w = img.width * sx, h = img.height * sy;
+  ctx.drawImage(img, Math.round(x + (img.width - w) / 2), Math.round(y + img.height - h), Math.round(w), Math.round(h));
+}
+
 /* ---------- drawing: player (dino or cat) ---------- */
 function drawPlayer() {
   const set = SPR.normal[game.character] ? game.character : 'dino';
@@ -375,12 +437,17 @@ function drawPlayer() {
   if (game.state !== 'running' || dino.jumping) f = frames.stand;
   else f = phaseA ? frames.runA : frames.runB;
   const bob = game.state === 'idle' ? Math.round(Math.sin(game.tick / 12) * 3) : 0;
-  blit(f, dino.x, dino.y + bob);
+  let sx = 1, sy = 1;
+  if (game.state === 'running') {
+    if (dino.squash > 0) { const t = dino.squash / 6; sx = 1 + 0.18 * t; sy = 1 - 0.18 * t; }
+    else if (dino.jumping && dino.vy < -6) { sx = 0.92; sy = 1.08; }
+  }
+  blitScaled(f, dino.x, dino.y + bob, sx, sy);
 }
 
 /* ---------- obstacles: cactus ---------- */
 function makeCactus() {
-  const big = Math.random() < 0.45;
+  const big = rnd() < 0.45;
   if (big) {
     return {
       type: 'cactus',
@@ -390,7 +457,7 @@ function makeCactus() {
       hitbox: { x: 4, y: 4, w: 18, h: 44 },
     };
   }
-  const cluster = 1 + Math.floor(Math.random() * 3);
+  const cluster = 1 + Math.floor(rnd() * 3);
   return {
     type: 'cactus_small',
     x: W + 20,
@@ -416,7 +483,7 @@ function drawCactus(o) {
 /* ---------- obstacles: bird ---------- */
 function makeBird() {
   const heights = [GROUND_Y - 80, GROUND_Y - 50, GROUND_Y - 30];
-  const y = heights[Math.floor(Math.random() * heights.length)];
+  const y = heights[Math.floor(rnd() * heights.length)];
   return {
     type: 'bird',
     x: W + 20,
@@ -434,9 +501,9 @@ function drawBird(o) {
 /* ---------- pickups: gift boxes ---------- */
 function makeGift() {
   // 65% bombs, 35% shields — bombs are the headline reward
-  const kind = Math.random() < 0.65 ? 'bomb' : 'shield';
+  const kind = rnd() < 0.65 ? 'bomb' : 'shield';
   // float at jumpable heights so the player has to commit to grab them
-  const tier = Math.random();
+  const tier = rnd();
   let y;
   if (tier < 0.45) y = GROUND_Y - 50;
   else if (tier < 0.85) y = GROUND_Y - 75;
@@ -449,7 +516,7 @@ function makeGift() {
     y: y,
     w: 18, h: 22,
     hitbox: { x: 0, y: 0, w: 18, h: 22 },
-    bobSeed: Math.random() * 100,
+    bobSeed: rnd() * 100,
   };
 }
 
@@ -720,14 +787,22 @@ seedStars();
 function jump() {
   if (game.state === 'idle') startGame();
   if (game.state === 'over') return;
+  if (dino.jumping) {
+    game.jumpBuf = JUMP_BUFFER;   // pressed a touch early: jump on landing
+    return;
+  }
   if (!dino.jumping) {
-    dino.vy = JUMP_V;
+    dino.vy = JUMP_V * (trait().jump || 1);
     dino.jumping = true;
     dino.ducking = false;
     spawnDust(dino.x + 8, GROUND_Y - 4);
     SFX.jump();
   }
 }
+// Input layers call these so we know whether the button is still held:
+// holding climbs higher, and a gliding character glides while held.
+function jumpPress() { dino.jumpHeld = true; jump(); }
+function jumpRelease() { dino.jumpHeld = false; }
 function duckOn() {
   if (game.state !== 'running') return;
   if (!dino.jumping && !dino.ducking) {
@@ -745,8 +820,9 @@ window.addEventListener('keydown', (e) => {
   if (isTypingTarget(e.target)) return; // Space, R and M must not fire while naming a score
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     e.preventDefault();
+    if (e.repeat) return;          // key auto-repeat must not queue jumps
     if (game.state === 'over') restart();
-    else jump();
+    else jumpPress();
   } else if (e.code === 'ArrowDown') {
     e.preventDefault();
     duckOn();
@@ -759,11 +835,15 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowDown') duckOff();
+  if (e.code === 'Space' || e.code === 'ArrowUp') jumpRelease();
 });
+window.addEventListener('blur', () => { jumpRelease(); duckOff(); });
 canvas.addEventListener('pointerdown', () => {
   if (game.state === 'over') restart();
-  else jump();
+  else jumpPress();
 });
+window.addEventListener('pointerup', jumpRelease);
+window.addEventListener('pointercancel', jumpRelease);
 
 /* touch: coarse pointers get on-screen buttons and tap wording */
 const COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -796,7 +876,7 @@ function unlockAudio() {
 // game over when there is no name form to protect from stray taps.
 overlay.addEventListener('pointerdown', (e) => {
   if (e.target.closest('#ov-submit, #ov-again')) return;
-  if (game.state === 'idle') jump();
+  if (game.state === 'idle') jumpPress();
   else if (game.state === 'over' && ovSubmit.hidden) restart();
 });
 ovAgain.addEventListener('click', () => { if (game.state === 'over') restart(); });
@@ -808,11 +888,11 @@ if (touchJump && touchDuck) {
     e.preventDefault();
     touchJump.classList.add('pressed');
     if (game.state === 'over') { if (ovSubmit.hidden) restart(); }
-    else jump();
+    else jumpPress();
   });
   // Keyboard or screen-reader activation (Enter/Space on the focused button).
   touchJump.addEventListener('click', (e) => {
-    if (e.detail === 0 && game.state !== 'over') jump();
+    if (e.detail === 0 && game.state !== 'over') { jumpPress(); setTimeout(jumpRelease, 150); }
   });
   document.getElementById('touch-controls').addEventListener('contextmenu', (e) => e.preventDefault());
   const releaseJump = () => touchJump.classList.remove('pressed');
@@ -832,16 +912,56 @@ if (touchJump && touchDuck) {
 }
 
 /* character picker */
+function idleBlurb() {
+  if (game.state !== 'idle') return;
+  const c = trait();
+  ovSub.textContent = game.mode === 'daily'
+    ? 'Daily challenge: everyone gets the same course'
+    : `${CHARACTERS[game.character].name} · ${c.blurb}`;
+}
+
+function refreshPicker() {
+  document.querySelectorAll('.char-btn').forEach((btn) => {
+    const c = CHARACTERS[btn.dataset.char];
+    if (!c) return;
+    const open = isUnlocked(btn.dataset.char);
+    btn.classList.toggle('locked', !open);
+    btn.setAttribute('aria-disabled', open ? 'false' : 'true');
+    btn.title = open ? `${c.name} — ${c.blurb}` : `${c.name} — reach a best score of ${c.unlock} to unlock`;
+  });
+}
+
 document.querySelectorAll('.char-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const choice = btn.dataset.char;
+    if (!isUnlocked(choice)) {
+      showModeNote(`Reach a best score of ${CHARACTERS[choice].unlock} to unlock ${CHARACTERS[choice].name}`);
+      return;
+    }
     game.character = choice;
+    idleBlurb();
     document.querySelectorAll('.char-btn').forEach(b => b.classList.toggle('active', b === btn));
   });
 });
 
 /* ---------- game flow ---------- */
+// Everything that must be fresh at the start of every run.
+function beginRun() {
+  if (game.mode === 'daily') {
+    game.dailyDate = utcDate();
+    game.dailyBest = parseInt(storageGet(DAILY_KEY + game.dailyDate) || '0', 10) || 0;
+    rnd = mulberry32(hashSeed('pixel-run:' + game.dailyDate));
+  } else {
+    rnd = Math.random;
+  }
+  game.jumpBuf = 0;
+  game.shake = 0;
+  dino.squash = 0;
+  game.shieldT = trait().startShield || 0;
+}
+
 function startGame() {
+  beginRun();
   game.state = 'running';
   game.runStart = Date.now();
   overlay.classList.add('hidden');
@@ -853,11 +973,25 @@ const MEDALS = { bronze: 100, silver: 300, gold: 600 };
 
 function gameOver() {
   game.state = 'over';
-  const newBest = game.score > game.hi;
-  if (newBest) {
-    game.hi = game.score;
-    storageSet(HI_KEY, String(game.hi));
+  let newBest;
+  let unlocked = [];
+  if (game.mode === 'daily') {
+    newBest = game.score > game.dailyBest;
+    if (newBest) {
+      game.dailyBest = game.score;
+      storageSet(DAILY_KEY + game.dailyDate, String(game.score));
+    }
+  } else {
+    const before = game.hi;
+    newBest = game.score > game.hi;
+    if (newBest) {
+      game.hi = game.score;
+      storageSet(HI_KEY, String(game.hi));
+    }
+    unlocked = Object.values(CHARACTERS).filter((c) => c.unlock > before && c.unlock <= game.hi).map((c) => c.name);
+    if (unlocked.length) refreshPicker();
   }
+  game.shake = 14;
   spawnExplosion(dino.x + 24, dino.y + 24);
   dino.hurtFlash = 30;
   game.hitFlash = 10;
@@ -866,6 +1000,8 @@ function gameOver() {
   ovSub.innerHTML = COARSE
     ? `Score <span class="accent-gold">${pad(game.score)}</span>`
     : `Score <span class="accent-gold">${pad(game.score)}</span> · press <span class="key">R</span> or tap to retry`;
+  if (unlocked.length) ovSub.innerHTML += `<br><span class="accent-gold">${unlocked.join(' & ')} unlocked!</span>`;
+  if (game.mode === 'daily') ovSub.innerHTML += `<br>Daily ${game.dailyDate}`;
   overlay.classList.add('is-over');
   ovAgain.hidden = false;
 
@@ -924,6 +1060,7 @@ function restart() {
   dino.jumping = false;
   dino.ducking = false;
   dino.hurtFlash = 0;
+  beginRun();
   game.state = 'running';
   ovSubmit.hidden = true;
   overlay.classList.add('hidden');
@@ -966,6 +1103,7 @@ async function submitScore() {
     obstacles: game.cleared,
     duration_ms: game.runStart ? (Date.now() - game.runStart) : 0,
   };
+  if (game.mode === 'daily') payload.challenge = game.dailyDate;
 
   try {
     const res = await fetch(`${API_BASE}/submit-score.php`, {
@@ -988,7 +1126,9 @@ async function submitScore() {
       ovSend.textContent = 'RETRY';
     } else if (data.error === 'database_unavailable') {
       ovStatus.classList.add('error');
-      ovStatus.textContent = 'Leaderboard is offline — your best stays on this device';
+      ovStatus.textContent = data.reason === 'needs_upgrade'
+        ? 'The leaderboard needs a database update (run install.php)'
+        : 'Leaderboard is offline — your best stays on this device';
       ovSend.disabled = false;
       ovSend.textContent = 'RETRY';
     } else {
@@ -1019,7 +1159,7 @@ async function loadLeaderboard(filter = 'all') {
     return;
   }
 
-  const url = `${API_BASE}/get-scores.php?limit=20${filter !== 'all' ? '&character=' + filter : ''}`;
+  const url = `${API_BASE}/get-scores.php?limit=20${filter === 'daily' ? '&challenge=today' : filter !== 'all' ? '&character=' + filter : ''}`;
   try {
     const res = await fetch(url, { cache: 'no-store' });
     const data = await res.json();
@@ -1038,7 +1178,7 @@ async function loadLeaderboard(filter = 'all') {
 // Ids (dino, cat, penguin, robot) are stored in the database and the API and
 // never change; these are the names players see.
 const CHAR_ICONS = { dino: '🦖', cat: '🐱', penguin: '🐧', robot: '🤖' };
-const CHAR_NAMES = { dino: 'Eeny', cat: 'Meeny', penguin: 'Miney', robot: 'Mo' };
+const CHAR_NAMES = Object.fromEntries(Object.entries(CHARACTERS).map(([id, c]) => [id, c.name]));
 
 function renderLeaderboard(scores, total) {
   if (!scores || scores.length === 0) {
@@ -1181,6 +1321,33 @@ if (soundBtn) {
 
 /* ---------- boot ---------- */
 game.hi = Math.max(0, parseInt(storageGet(HI_KEY) || '0', 10) || 0);
+refreshPicker();
+idleBlurb();
+
+/* ---------- daily challenge toggle ---------- */
+// Same seeded course for everyone on a given UTC date, traits switched off,
+// and its own leaderboard tab. Works offline too (best is kept on-device).
+const dailyBtn = document.getElementById('daily-btn');
+function setMode(m) {
+  game.mode = m;
+  game.dailyDate = utcDate();
+  game.dailyBest = parseInt(storageGet(DAILY_KEY + game.dailyDate) || '0', 10) || 0;
+  if (dailyBtn) {
+    dailyBtn.classList.toggle('active', m === 'daily');
+    dailyBtn.setAttribute('aria-pressed', m === 'daily' ? 'true' : 'false');
+  }
+  if (game.state === 'over') restart();
+  else idleBlurb();
+}
+if (dailyBtn) {
+  dailyBtn.addEventListener('click', () => {
+    if (game.state === 'running') {
+      showModeNote('Finish your run before switching modes');
+      return;
+    }
+    setMode(game.mode === 'daily' ? 'normal' : 'daily');
+  });
+}
 
 // PHP already reported apiAvailable and the initial scores in the config
 // block; no need to ping the API on first load.
@@ -1204,6 +1371,7 @@ function update() {
   if (game.flashCD > 0) game.flashCD--;
   if (game.bombFlash > 0) game.bombFlash--;
   if (game.hitFlash > 0) game.hitFlash--;
+  if (game.shake > 0) game.shake--;
 
   if (game.state !== 'running') {
     // still animate clouds + stars softly when idle
@@ -1228,23 +1396,31 @@ function update() {
   if (game.tick % 6 === 0) game.score++;
 
   // dino physics
+  if (dino.squash > 0) dino.squash--;
   if (dino.jumping) {
-    dino.vy += GRAVITY;
+    const gliding = trait().glide && dino.jumpHeld && dino.vy > 0;
+    dino.vy += gliding ? GLIDE_G : GRAVITY;
+    if (gliding && dino.vy > GLIDE_MAX_FALL) dino.vy = GLIDE_MAX_FALL;
+    // variable jump height: letting go early stops the climb sooner
+    if (!dino.jumpHeld && dino.vy < JUMP_CUT_V) dino.vy = JUMP_CUT_V;
     dino.y += dino.vy;
     if (dino.y >= GROUND_Y - STAND_H) {
       dino.y = GROUND_Y - STAND_H;
       dino.vy = 0;
       dino.jumping = false;
+      dino.squash = 6;
       spawnDust(dino.x + 8, GROUND_Y - 4);
       SFX.land();
+      if (game.jumpBuf > 0) { game.jumpBuf = 0; jump(); }
     }
   }
+  if (game.jumpBuf > 0) game.jumpBuf--;
 
   // obstacle spawn
   game.spawnCD--;
   if (game.spawnCD <= 0) {
     const minGap = Math.max(40, 90 - game.speed * 2);
-    const r = Math.random();
+    const r = rnd();
     let o;
     if (r < 0.2 && game.speed > 6) {
       o = makeBird();
@@ -1252,7 +1428,7 @@ function update() {
       o = makeCactus();
     }
     obstacles.push(o);
-    game.spawnCD = minGap + Math.floor(Math.random() * 70);
+    game.spawnCD = minGap + Math.floor(rnd() * 70);
   }
 
   // gift spawn — shows up periodically as a reward to grab
@@ -1260,7 +1436,7 @@ function update() {
   if (game.giftCD <= 0) {
     gifts.push(makeGift());
     // next gift roughly every 12–22 seconds
-    game.giftCD = 720 + Math.floor(Math.random() * 600);
+    game.giftCD = 720 + Math.floor(rnd() * 600);
   }
 
   // move obstacles
@@ -1359,6 +1535,13 @@ function render() {
   const sky = currentSky();
   drawSky(sky);
 
+  // screen shake moves the world, not the sky, so no edges show
+  ctx.save();
+  if (game.shake > 0) {
+    const m = game.shake * 0.5;
+    ctx.translate(Math.round((Math.random() - 0.5) * m * 2), Math.round((Math.random() - 0.5) * m * 2));
+  }
+
   // clouds
   for (const c of clouds) drawCloud(c);
 
@@ -1413,6 +1596,7 @@ function render() {
   }
 
   drawParticles();
+  ctx.restore();
 
   // bomb flash overlay
   if (game.bombFlash > 0) {
@@ -1428,7 +1612,7 @@ function render() {
   }
 
   // score HUD update
-  hiEl.textContent = pad(game.hi);
+  hiEl.textContent = pad(game.mode === 'daily' ? game.dailyBest : game.hi);
   scEl.textContent = pad(game.score);
 
   // milestone flash (triggered and decayed in update)

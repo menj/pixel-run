@@ -1,5 +1,19 @@
 # Upgrading
 
+## To the release with traits and the daily challenge
+
+Adds a nullable `challenge_date` column for the daily leaderboard. Nothing
+breaks without it: the normal leaderboard keeps working, and only daily
+scores are refused. Open `install.php`; on an installed site it shows an
+**Update database** button that applies the change using your configured
+credentials. By hand:
+
+```sql
+ALTER TABLE scores
+  ADD COLUMN challenge_date DATE DEFAULT NULL,
+  ADD INDEX idx_challenge (challenge_date, score);
+```
+
 ## To the four-character release (penguin and robot)
 
 Existing databases need one migration so scores from the new characters

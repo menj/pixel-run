@@ -6,9 +6,25 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (gameplay)
+- Game feel: variable jump height (hold to climb higher), jump buffering (a
+  press just before landing still jumps), landing squash and jump stretch,
+  and screen shake on a crash.
+- Character traits: Eeny (dino) is balanced, Meeny (cat) jumps 10% higher,
+  Miney (penguin) glides while jump is held, Mo (bot) starts with a shield.
+  Miney unlocks at a best score of 300 and Mo at 600 (the silver and gold
+  medal marks), tracked on the device.
+- Daily challenge: a DAILY button plays one seeded course per UTC day, the
+  same for everyone, with traits off. It has its own TODAY leaderboard tab
+  and works offline with an on-device best.
+- Database: new `challenge_date` column. `install.php` adds it to existing
+  installs from its locked page ("Update database"); until then the normal
+  leaderboard keeps working and daily scores report that an update is needed.
+
 ### Changed
-- Characters are now named Eeny (dino), Meeny (cat), Miney (penguin) and Mo
-  (robot) in the picker and leaderboard. Stored ids are unchanged.
+- Characters are named Eeny (dino), Meeny (cat), Miney (penguin) and Mo (bot)
+  in in-game text (tips, unlock messages). Picker and leaderboard labels stay
+  DINO, CAT, PENGUIN and BOT. Stored ids are unchanged.
 - `index.php` and the API degrade gracefully without a database: the API answers
   `503 database_unavailable` (never a fatal or a 500) for an unconfigured,
   unreachable or not-yet-installed database, and the game carries on locally.

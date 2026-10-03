@@ -5,6 +5,7 @@
  * Query params:
  *   limit     1..max_limit      (default: default_limit)
  *   character "dino" | "cat" | "penguin" | "robot" | "all"  (default: "all")
+ *   challenge "today" | YYYY-MM-DD   daily-challenge board (default: ordinary runs)
  *
  * Returns:
  *   200 { scores: [ ... ], total: 142 }
@@ -30,14 +31,19 @@ $limit = max(1, min((int)$cfg['max_limit'], $limit));
 $character = (string)($_GET['character'] ?? 'all');
 $filter = in_array($character, PIXEL_RUN_CHARACTERS, true) ? $character : null;
 
+$challenge = parse_challenge($_GET['challenge'] ?? null);
+if ($challenge === false) {
+    send_json(['error' => 'invalid_challenge'], 400);
+}
+
 $pdo = db_open($cfg, $reason);
 if ($pdo === null) {
     send_unavailable($reason);
 }
 
 try {
-    $scores = fetch_top_scores($pdo, $filter, $limit);
-    $total  = fetch_total_count($pdo, $filter);
+    $scores = fetch_top_scores($pdo, $filter, $limit, $challenge);
+    $total  = fetch_total_count($pdo, $filter, $challenge);
 
     send_json([
         'scores' => $scores,

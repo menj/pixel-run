@@ -13,22 +13,62 @@ declare(strict_types=1);
 const PIXEL_RUN_CHARACTERS = ['dino', 'cat', 'penguin', 'robot'];
 
 /**
- * Fetch the top N scores, optionally filtered by character.
+ * Whether the scores table has the daily-challenge column. Databases created
+ * before that feature lack it until install.php upgrades them, and the game
+ * must keep working meanwhile, so every query that mentions it checks first.
+ */
+function scores_has_challenge(PDO $pdo): bool
+{
+    static $cache = [];
+    $key = spl_object_id($pdo);
+    if (!isset($cache[$key])) {
+        $cache[$key] = $pdo->query("SHOW COLUMNS FROM scores LIKE 'challenge_date'")->fetch() !== false;
+    }
+    return $cache[$key];
+}
+
+/**
+ * WHERE fragments and parameters for the character and challenge filters.
+ * $challenge null means ordinary runs only; a date means that day's course.
+ *
+ * @return array{0:string[],1:array}
+ */
+function score_filters(PDO $pdo, ?string $character, ?string $challenge): array
+{
+    $where  = [];
+    $params = [];
+    if (in_array($character, PIXEL_RUN_CHARACTERS, true)) {
+        $where[]  = 'character_type = ?';
+        $params[] = $character;
+    }
+    if (scores_has_challenge($pdo)) {
+        if ($challenge === null) {
+            $where[] = 'challenge_date IS NULL';
+        } else {
+            $where[]  = 'challenge_date = ?';
+            $params[] = $challenge;
+        }
+    }
+    return [$where, $params];
+}
+
+/**
+ * Fetch the top N scores, optionally filtered by character or daily course.
  *
  * @param PDO         $pdo
  * @param string|null $character one of PIXEL_RUN_CHARACTERS, or null for all
  * @param int         $limit
+ * @param string|null $challenge UTC date of a daily course, or null for ordinary runs
  * @return array<int, array{player_name:string,score:int,character_type:string,created_at:string}>
  */
-function fetch_top_scores(PDO $pdo, ?string $character, int $limit): array
+function fetch_top_scores(PDO $pdo, ?string $character, int $limit, ?string $challenge = null): array
 {
     $limit = max(1, min(100, $limit));
-    $where  = '';
-    $params = [];
-    if (in_array($character, PIXEL_RUN_CHARACTERS, true)) {
-        $where    = 'WHERE character_type = ?';
-        $params[] = $character;
+    if ($challenge !== null && !scores_has_challenge($pdo)) {
+        return [];   // daily scores cannot exist before the database upgrade
     }
+    [$conds, $params] = score_filters($pdo, $character, $challenge);
+    $where = $conds ? 'WHERE ' . implode(' AND ', $conds) : '';
     $sql = "SELECT player_name, score, character_type, created_at
               FROM scores
               $where
@@ -42,14 +82,43 @@ function fetch_top_scores(PDO $pdo, ?string $character, int $limit): array
 /**
  * Total number of submitted scores.
  */
-function fetch_total_count(PDO $pdo, ?string $character = null): int
+function fetch_total_count(PDO $pdo, ?string $character = null, ?string $challenge = null): int
 {
-    if (in_array($character, PIXEL_RUN_CHARACTERS, true)) {
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM scores WHERE character_type = ?');
-        $stmt->execute([$character]);
-        return (int)$stmt->fetchColumn();
+    if ($challenge !== null && !scores_has_challenge($pdo)) {
+        return 0;
     }
-    return (int)$pdo->query('SELECT COUNT(*) FROM scores')->fetchColumn();
+    [$conds, $params] = score_filters($pdo, $character, $challenge);
+    $where = $conds ? 'WHERE ' . implode(' AND ', $conds) : '';
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM scores $where");
+    $stmt->execute($params);
+    return (int)$stmt->fetchColumn();
+}
+
+/**
+ * A daily-challenge date from the client, or null for an ordinary run.
+ * Accepts today and the neighbouring UTC days so a slow or skewed clock does
+ * not lock a player out. Returns false for anything malformed.
+ *
+ * @return string|null|false
+ */
+function parse_challenge($raw)
+{
+    if ($raw === null || $raw === '' || $raw === false) {
+        return null;
+    }
+    $raw = (string)$raw;
+    if ($raw === 'today') {
+        return gmdate('Y-m-d');
+    }
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+        return false;
+    }
+    $allowed = [
+        gmdate('Y-m-d', time() - 86400),
+        gmdate('Y-m-d'),
+        gmdate('Y-m-d', time() + 86400),
+    ];
+    return in_array($raw, $allowed, true) ? $raw : false;
 }
 
 /**
@@ -84,6 +153,11 @@ function validate_score_payload(array $input, array $cfg): array
         return ['ok' => false, 'error' => 'invalid_character'];
     }
 
+    $challenge = parse_challenge($input['challenge'] ?? null);
+    if ($challenge === false) {
+        return ['ok' => false, 'error' => 'invalid_challenge'];
+    }
+
     $obstacles  = max(0, (int)($input['obstacles']   ?? 0));
     $durationMs = max(0, (int)($input['duration_ms'] ?? 0));
     if ($durationMs > (int)$cfg['max_duration_ms']) {
@@ -105,6 +179,7 @@ function validate_score_payload(array $input, array $cfg): array
             'name'         => $name,
             'score'        => $score,
             'character'    => $character,
+            'challenge'    => $challenge,
             'obstacles'    => $obstacles,
             'duration_ms'  => $durationMs,
         ],
@@ -131,12 +206,9 @@ function is_rate_limited(PDO $pdo, string $ipHash, int $minSeconds): bool
  */
 function insert_score(PDO $pdo, array $clean, string $ipHash, string $userAgent): void
 {
-    $stmt = $pdo->prepare(
-        'INSERT INTO scores
-            (player_name, score, character_type, obstacles, duration_ms, ip_hash, user_agent)
-         VALUES (?, ?, ?, ?, ?, ?, ?)'
-    );
-    $stmt->execute([
+    $cols   = 'player_name, score, character_type, obstacles, duration_ms, ip_hash, user_agent';
+    $marks  = '?, ?, ?, ?, ?, ?, ?';
+    $values = [
         $clean['name'],
         $clean['score'],
         $clean['character'],
@@ -144,16 +216,26 @@ function insert_score(PDO $pdo, array $clean, string $ipHash, string $userAgent)
         $clean['duration_ms'],
         $ipHash,
         $userAgent,
-    ]);
+    ];
+    if (scores_has_challenge($pdo)) {
+        $cols    .= ', challenge_date';
+        $marks   .= ', ?';
+        $values[] = $clean['challenge'] ?? null;
+    }
+    $stmt = $pdo->prepare("INSERT INTO scores ($cols) VALUES ($marks)");
+    $stmt->execute($values);
 }
 
 /**
  * Compute the global rank of a given score (1 = best).
  */
-function compute_rank(PDO $pdo, int $score): int
+function compute_rank(PDO $pdo, int $score, ?string $challenge = null): int
 {
-    $stmt = $pdo->prepare('SELECT COUNT(*) + 1 FROM scores WHERE score > ?');
-    $stmt->execute([$score]);
+    [$conds, $params] = score_filters($pdo, null, $challenge);
+    array_unshift($conds, 'score > ?');
+    array_unshift($params, $score);
+    $stmt = $pdo->prepare('SELECT COUNT(*) + 1 FROM scores WHERE ' . implode(' AND ', $conds));
+    $stmt->execute($params);
     return (int)$stmt->fetchColumn();
 }
 
@@ -165,14 +247,19 @@ function compute_rank(PDO $pdo, int $score): int
  */
 function record_score(PDO $pdo, array $cfg, array $clean, string $ipHash, string $userAgent): array
 {
+    $challenge = $clean['challenge'] ?? null;
+    if ($challenge !== null && !scores_has_challenge($pdo)) {
+        // The daily board needs the database upgrade; ordinary play is unaffected.
+        return ['ok' => false, 'error' => 'database_unavailable', 'reason' => 'needs_upgrade'];
+    }
     if (is_rate_limited($pdo, $ipHash, (int)$cfg['rate_limit_seconds'])) {
         return ['ok' => false, 'error' => 'rate_limited'];
     }
     insert_score($pdo, $clean, $ipHash, $userAgent);
     return [
         'ok'    => true,
-        'rank'  => compute_rank($pdo, $clean['score']),
-        'total' => fetch_total_count($pdo),
+        'rank'  => compute_rank($pdo, $clean['score'], $challenge),
+        'total' => fetch_total_count($pdo, null, $challenge),
     ];
 }
 

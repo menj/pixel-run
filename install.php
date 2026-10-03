@@ -54,8 +54,24 @@ $form = [
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+$upgradeMsg = '';
+$upgradeOk  = false;
 if (installer_is_installed($cfg)) {
     $step = 'locked';
+    // Existing installs can pick up schema changes (for example the daily
+    // challenge board) without reinstalling. Only fixed, idempotent
+    // migrations run, using the credentials already configured.
+    if ($method === 'POST' && ($_POST['action'] ?? '') === 'upgrade'
+        && hash_equals($token, (string)($_POST['token'] ?? ''))) {
+        try {
+            installer_migrate(installer_connect($cfg['db']));
+            $upgradeOk  = true;
+            $upgradeMsg = 'Database updated. Your scores were not touched.';
+        } catch (Throwable $ex) {
+            $upgradeMsg = installer_explain($ex)
+                . ' If this user cannot alter tables, run the ALTER TABLE from UPGRADING.md as an administrator.';
+        }
+    }
 } elseif ($method === 'POST') {
     $postedToken = (string)($_POST['token'] ?? '');
     if (!hash_equals($token, $postedToken)) {
@@ -128,6 +144,17 @@ $order = array_keys($steps);
     <p class="hint">To reinstall, remove <code>includes/config.local.php</code> and
       the <code>scores</code> table first. For safety you can delete
       <code>install.php</code> from the server.</p>
+    <?php if ($upgradeMsg): ?>
+      <p class="<?= $upgradeOk ? 'ok-note' : 'error' ?>" role="status"><?= e($upgradeMsg) ?></p>
+    <?php elseif (installer_schema_outdated($cfg)): ?>
+      <form method="post" action="install.php">
+        <input type="hidden" name="token" value="<?= e($token) ?>">
+        <input type="hidden" name="action" value="upgrade">
+        <p><strong>Database update available.</strong> It adds the daily-challenge
+           leaderboard. Existing scores are kept.</p>
+        <p><button class="btn" type="submit">Update database</button></p>
+      </form>
+    <?php endif; ?>
     <p><a class="btn" href="./">Play Pixel Run</a></p>
   </section>
 
