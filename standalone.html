@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pixel Run — Standalone</title>
 <!--
   Pixel Run without PHP or MySQL.
@@ -32,19 +32,19 @@
     <div class="char-picker" role="tablist" aria-label="Choose character">
       <button class="char-btn active" data-char="dino" type="button">
         <span class="char-emoji">🦖</span>
-        <span class="char-label">DINO</span>
+        <span class="char-label">EENY</span>
       </button>
       <button class="char-btn" data-char="cat" type="button">
         <span class="char-emoji">🐱</span>
-        <span class="char-label">CAT</span>
+        <span class="char-label">MEENY</span>
       </button>
       <button class="char-btn" data-char="penguin" type="button">
         <span class="char-emoji">🐧</span>
-        <span class="char-label">PENGUIN</span>
+        <span class="char-label">MINEY</span>
       </button>
       <button class="char-btn" data-char="robot" type="button">
         <span class="char-emoji">🤖</span>
-        <span class="char-label">ROBOT</span>
+        <span class="char-label">MO</span>
       </button>
     </div>
     <div class="toolbar-right">
@@ -89,6 +89,7 @@
           </div>
           <p id="ov-status" class="ov-status"></p>
         </div>
+        <button id="ov-again" class="ov-again" type="button" hidden>PLAY AGAIN</button>
       </div>
     </div>
   </div>
@@ -101,14 +102,19 @@
       </header>
       <div class="lb-tabs" role="tablist">
         <button class="lb-tab active" data-filter="all" type="button">ALL</button>
-        <button class="lb-tab" data-filter="dino" type="button">🦖 DINO</button>
-        <button class="lb-tab" data-filter="cat" type="button">🐱 CAT</button>
-        <button class="lb-tab" data-filter="penguin" type="button">🐧 PENGUIN</button>
-        <button class="lb-tab" data-filter="robot" type="button">🤖 ROBOT</button>
+        <button class="lb-tab" data-filter="dino" type="button">🦖 EENY</button>
+        <button class="lb-tab" data-filter="cat" type="button">🐱 MEENY</button>
+        <button class="lb-tab" data-filter="penguin" type="button">🐧 MINEY</button>
+        <button class="lb-tab" data-filter="robot" type="button">🤖 MO</button>
       </div>
       <div class="lb-list" id="lb-list"></div>
       <p class="lb-foot" id="lb-foot"></p>
     </div>
+  </div>
+
+    <div class="touch-controls" id="touch-controls">
+    <button id="touch-duck" class="touch-btn" type="button" aria-label="Duck (hold)">▼ DUCK</button>
+    <button id="touch-jump" class="touch-btn touch-jump" type="button" aria-label="Jump">▲ JUMP</button>
   </div>
 
   <div class="controls">
