@@ -2,13 +2,15 @@
 /**
  * Pixel Run — Configuration
  *
- * Edit the database credentials below to match your LAMP environment.
+ * The easiest setup is to open install.php in your browser: it creates the
+ * tables and writes your credentials to config.local.php. You can instead
+ * edit the database credentials below by hand.
  * The includes/ directory is denied to browsers by .htaccess; if your
  * host ignores .htaccess, move this file outside the web root and
  * adjust the require paths in index.php and api/*.php.
  */
 
-return [
+$config = [
     // Application version (semver). Also used as the asset cache-buster.
     'version' => '1.0.0',
 
@@ -49,3 +51,13 @@ return [
     'default_limit'      => 10,
     'max_limit'          => 50,
 ];
+
+// install.php writes database credentials and a random ip_salt to
+// config.local.php. Anything defined there wins over the values above, and
+// it survives upgrades because the file is not part of the package.
+$local = __DIR__ . '/config.local.php';
+if (is_file($local)) {
+    $config = array_replace_recursive($config, (array)require $local);
+}
+
+return $config;

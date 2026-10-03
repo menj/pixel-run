@@ -22,6 +22,7 @@ Both pages load the same `assets/` files, so gameplay is identical.
 ```
 pixel-run/
 ├── index.php              full version: renders the page, serves the form fallback
+├── install.php            web installer (WordPress-style first-run wizard)
 ├── standalone.html        no-backend version: links the same assets
 ├── assets/
 │   ├── css/style.css      all styling
@@ -29,7 +30,9 @@ pixel-run/
 │       ├── sprites.js     character and obstacle bitmaps with palettes
 │       └── game.js        engine (requires sprites.js to load first)
 ├── includes/              internal PHP, denied to browsers by .htaccess
-│   ├── config.php         credentials, version, tunables
+│   ├── config.php         version and tunables (credentials come from config.local.php)
+│   ├── config.local.php   written by install.php; holds credentials, git-ignored
+│   ├── installer.php      installer logic: checks, schema, settings file
 │   ├── db.php             PDO, JSON responses, client IP, CORS
 │   └── scores.php         validation, rate limiting, queries, insert
 ├── api/
@@ -49,6 +52,21 @@ host. Nothing else is required. The only outbound request is the Google
 Fonts stylesheet; the page never contacts an API.
 
 ## Full deployment on LAMP
+
+### Quickest: the web installer
+
+Upload the package, create an empty MySQL/MariaDB database and user in
+your hosting panel, then open the site. First-time visitors are sent to
+`install.php`, which checks the server, asks for the database details,
+creates the tables and writes `includes/config.local.php` with a random
+`ip_salt`. Once the game can reach its database the installer locks
+itself; you can delete `install.php` afterwards. Re-running it on an
+existing database keeps all scores and upgrades the table if needed.
+
+If `includes/` is not writable, the installer shows the settings file to
+save by hand. Prefer the command line? Follow the manual steps below.
+
+### Manual setup
 
 ### 1. Create the database
 

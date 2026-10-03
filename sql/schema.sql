@@ -1,6 +1,6 @@
 -- ============================================================
 -- Pixel Run — MySQL schema
--- Run once on first deployment.
+-- Run once on first deployment, or let install.php do it for you.
 --   mysql -u root -p < schema.sql
 -- ============================================================
 
