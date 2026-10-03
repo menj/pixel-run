@@ -4,7 +4,7 @@
  *
  * This is the single page the player visits. PHP handles three jobs:
  *
- *   1. Connect to MySQL and fetch the current top scores so the
+ *   1. Connect to the database and fetch the current top scores so the
  *      leaderboard opens without an AJAX round-trip.
  *
  *   2. Accept a traditional form POST as a no-JS fallback for score

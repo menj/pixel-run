@@ -1,5 +1,12 @@
 # Upgrading
 
+## To the release with PostgreSQL and SQLite support
+
+Nothing to do for existing MySQL/MariaDB installs: a config without
+`db.driver` is treated as `mysql`. To move to another database, run
+`install.php` after removing `includes/config.local.php` (or edit
+`db.driver`), and note that scores are not copied between databases.
+
 ## To the release with traits and the daily challenge
 
 Adds a nullable `challenge_date` column for the daily leaderboard. Nothing

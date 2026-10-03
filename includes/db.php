@@ -2,28 +2,75 @@
 /**
  * Pixel Run — Shared helpers.
  *
- * PDO connection, JSON response wrapper, IP hashing, CORS preflight.
+ * PDO connection (MySQL/MariaDB, PostgreSQL or SQLite), JSON response wrapper, IP hashing, CORS preflight.
  * Required by all API endpoints.
  */
 
 declare(strict_types=1);
 
-function db_connect(array $cfg): PDO
+/** Supported PDO drivers. MySQL stays the default so old configs keep working. */
+const PIXEL_RUN_DRIVERS = ['mysql', 'pgsql', 'sqlite'];
+
+function db_driver(array $db): string
 {
-    $dsn = sprintf(
-        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-        $cfg['host'],
-        $cfg['port'] ?? 3306,
-        $cfg['name'],
-        $cfg['charset']
-    );
+    $d = strtolower((string)($db['driver'] ?? 'mysql'));
+    return in_array($d, PIXEL_RUN_DRIVERS, true) ? $d : 'mysql';
+}
+
+/** Absolute path of the SQLite file; relative paths are from the app root. */
+function db_sqlite_path(array $db): string
+{
+    $p = (string)($db['path'] ?? '');
+    if ($p === '') {
+        return '';
+    }
+    $absolute = $p[0] === '/' || $p[0] === '\\' || preg_match('~^[A-Za-z]:[\\\\/]~', $p);
+    return $absolute ? $p : dirname(__DIR__) . '/' . $p;
+}
+
+/**
+ * Connect with the configured driver. $selectDb = false connects to the
+ * server without a database (used once, by the installer, to create it).
+ */
+function db_connect(array $db, bool $selectDb = true): PDO
+{
     $opts = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
         PDO::ATTR_TIMEOUT            => 3, // an unreachable database must not stall the page
     ];
-    return new PDO($dsn, $cfg['user'], $cfg['pass'], $opts);
+
+    switch (db_driver($db)) {
+        case 'sqlite':
+            $pdo = new PDO('sqlite:' . db_sqlite_path($db), null, null, $opts);
+            try {
+                // Readers do not block the writer, which suits a busy leaderboard.
+                $pdo->exec('PRAGMA journal_mode = WAL');
+            } catch (Throwable $e) {
+                // Unsupported on some filesystems; the default journal still works.
+            }
+            return $pdo;
+
+        case 'pgsql':
+            $dsn = sprintf(
+                'pgsql:host=%s;port=%d;dbname=%s',
+                $db['host'],
+                (int)($db['port'] ?? 5432),
+                $selectDb ? $db['name'] : 'postgres'
+            );
+            return new PDO($dsn, $db['user'], $db['pass'], $opts);
+
+        default:
+            $dsn = sprintf(
+                'mysql:host=%s;port=%d;%scharset=%s',
+                $db['host'],
+                (int)($db['port'] ?? 3306),
+                $selectDb ? 'dbname=' . $db['name'] . ';' : '',
+                $db['charset'] ?? 'utf8mb4'
+            );
+            return new PDO($dsn, $db['user'], $db['pass'], $opts);
+    }
 }
 
 /**
@@ -41,6 +88,10 @@ function db_open(array $cfg, ?string &$reason = null): ?PDO
         return null;
     }
     try {
+        // Never let a connection attempt create an empty SQLite file.
+        if (db_driver($cfg['db']) === 'sqlite' && !is_file(db_sqlite_path($cfg['db']))) {
+            throw new RuntimeException('SQLite file not found');
+        }
         return db_connect($cfg['db']);
     } catch (Throwable $e) {
         error_log('[pixel-run] database unreachable: ' . $e->getMessage());
@@ -49,10 +100,15 @@ function db_open(array $cfg, ?string &$reason = null): ?PDO
     }
 }
 
-/** MySQL error 1146: connected, but the tables have not been created yet. */
+/** Connected, but the tables have not been created yet (any driver). */
 function db_is_missing_table(Throwable $e): bool
 {
-    return $e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1146;
+    if (!$e instanceof PDOException) {
+        return false;
+    }
+    return (int)($e->errorInfo[1] ?? 0) === 1146                 // MySQL / MariaDB
+        || ($e->errorInfo[0] ?? '') === '42P01'                  // PostgreSQL
+        || stripos($e->getMessage(), 'no such table') !== false; // SQLite
 }
 
 /**

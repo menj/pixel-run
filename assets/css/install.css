@@ -158,3 +158,30 @@ code { padding: 1px 5px; border-radius: 4px; background: var(--code-bg); font-si
 
 .opt { color: var(--muted); font-size: 12px; }
 .linklike { background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; }
+
+/* Database type tabs: pure CSS, driven by the radio buttons. */
+.tabs > input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+.tablist { display: flex; gap: 6px; margin-bottom: 16px; }
+.tablist label {
+  flex: 1;
+  padding: 9px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+.tablist label.off { opacity: 0.4; cursor: not-allowed; text-decoration: line-through; }
+#drv-mysql:checked ~ .tablist label[for=drv-mysql],
+#drv-pgsql:checked ~ .tablist label[for=drv-pgsql],
+#drv-sqlite:checked ~ .tablist label[for=drv-sqlite] {
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--accent);
+}
+.tabs > input:focus-visible ~ .tablist { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+#drv-sqlite:checked ~ .panel-server { display: none; }
+#drv-sqlite:not(:checked) ~ .panel-sqlite { display: none; }
+@media (max-width: 480px) { .tablist { flex-direction: column; } }

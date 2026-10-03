@@ -6,6 +6,15 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (databases)
+- PostgreSQL and SQLite support alongside MySQL/MariaDB. The installer has a
+  tab for each, creates the PostgreSQL database or the SQLite file for you,
+  and upgrades old tables. Driver-specific SQL (rate limiting, schema
+  checks) is handled in one place, with `sql/schema.pgsql.sql` and
+  `sql/schema.sqlite.sql` next to `sql/schema.sql`. New `db.driver` setting;
+  configs without it stay on MySQL. SQLite lives under `data/`, which is
+  blocked from downloads.
+
 ### Added (admin)
 - Admin mode and a cheat code. Set an admin password in the installer (or an
   `admin_password_hash` in `includes/config.local.php`), sign in at

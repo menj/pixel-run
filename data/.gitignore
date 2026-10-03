@@ -1,0 +1,6 @@
+# SQLite databases created by install.php
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
