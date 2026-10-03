@@ -6,7 +6,15 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed (copy)
+- Rewrote the description, tagline ("Pick a hero. Outrun the desert."), tags,
+  share text and page titles. `game.json` gains `summary` and `badges` fields
+  for hub cards, and the share image carries the new tagline.
+
 ### Added (arcade hub readiness)
+- Each finished run updates the shared `arcade.stats` record in localStorage
+  (best, plays, last score, last played) so a hub on the same domain can show
+  a player's best on the game card. Cheated runs are not recorded.
 - Ready to live at a path such as `/arcade/pixel-run/`: `index.php` now emits a
   `<base>` tag so the game works even without a trailing slash, and the
   sub-folder layout was tested (assets, API, installer, SQLite, admin cookie).

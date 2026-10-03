@@ -1378,6 +1378,7 @@ function gameOver() {
   }
   game.shake = 14;
   reactHit();
+  if (!cheated) arcadeRecord(game.score);
   spawnExplosion(dino.x + 24, dino.y + 24);
   dino.hurtFlash = 30;
   game.hitFlash = 10;
@@ -1633,6 +1634,24 @@ if (/^(\/|\.{1,2}\/|https?:\/\/)/.test(SERVER.arcadeUrl || '')) {
     link.textContent = '‹ ARCADE';
     hdr.insertBefore(link, hdr.firstChild);
   }
+}
+
+/* ---------- shared arcade stats ---------- */
+// Games hosted on the same domain keep a small record in localStorage under
+// 'arcade.stats' ({ "<game id>": { best, plays, last, lastPlayed } }), so an
+// arcade hub can show each player's best score on the game cards. Runs that
+// used the admin cheat are never recorded.
+function arcadeRecord(score) {
+  try {
+    const all = JSON.parse(localStorage.getItem('arcade.stats') || '{}') || {};
+    const s = all['pixel-run'] || { best: 0, plays: 0 };
+    s.plays += 1;
+    s.last = score;
+    if (score > s.best) s.best = score;
+    s.lastPlayed = Date.now();
+    all['pixel-run'] = s;
+    localStorage.setItem('arcade.stats', JSON.stringify(all));
+  } catch (_) { /* storage unavailable */ }
 }
 
 /* ---------- admin cheat code (god mode) ---------- */

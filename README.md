@@ -1,9 +1,15 @@
 # Pixel Run
 
-A pixel-art endless runner in the spirit of the browser offline game, with
-a colour day-and-night cycle, four playable characters (Eeny the dino,
-Meeny the tabby cat, Miny the penguin and Moe the bot), bomb and shield pickups, synthesised sound, and an optional global
-leaderboard backed by MySQL/MariaDB, PostgreSQL or SQLite and PHP.
+**Pick a hero. Outrun the desert.**
+
+Pixel Run is a fast, funny pixel-art endless runner. Sprint across a desert
+that drifts from dawn to a starlit night, leap the cacti, duck the birds and
+grab bombs and shields as the pace climbs. Four heroes (Eeny the dino, Meeny the
+cat, Miny the penguin and Moe the bot) each have a skill, a short story and a
+dramatic way of falling over. Race the daily course, climb the leaderboard and
+unlock new runners as your best score grows. It plays on keyboard, phone and
+tablet, works offline, and has an optional global leaderboard backed by
+MySQL/MariaDB, PostgreSQL or SQLite and PHP.
 
 Version 1.0.0. See `CHANGELOG.md` for release notes and `UPGRADING.md`
 if you deployed an earlier draft package.
@@ -68,17 +74,24 @@ share a sign-in. Give each game its own database or SQLite file.
 
 | Field | Meaning |
 |-------|---------|
-| `id`, `title`, `tagline`, `description` | Text for the card and page |
+| `id`, `title`, `tagline` | Name and a one-line pitch for the card |
+| `summary`, `description` | A sentence or two for search and share previews, and the full blurb |
+| `badges` | Short chips for the card ("Daily challenge", "Free to play") |
 | `url` | Where to link (`./`, relative to the game folder) |
 | `standalone` | The no-PHP, no-database page, for hosts without PHP |
 | `thumbnail` | 1280x720 card image (`assets/img/thumb.png`) |
 | `icon`, `shareImage` | 192x192 icon and 1200x630 share preview |
-| `input`, `features`, `tags`, `players`, `requires` | Filters and badges |
+| `tags`, `input`, `features`, `players`, `requires` | Keywords and filters |
 | `version` | Keep in step with `version` in `includes/config.php` |
 
 Paths in `game.json` are relative to the game's folder. A hub on a different
 domain needs CORS headers on that file, or you can copy the values into the
 hub.
+
+**Shared stats.** After each run the game updates `arcade.stats` in the
+browser's localStorage (`{"pixel-run": {best, plays, last, lastPlayed}}`).
+Other games on the same domain, such as Flying Bird, use the same key, so the
+hub can show a player's best score on every card without a server.
 
 **Optional settings** in `includes/config.local.php`:
 
