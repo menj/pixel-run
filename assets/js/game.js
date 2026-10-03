@@ -913,6 +913,11 @@ async function submitScore() {
       ovStatus.textContent = 'Slow down — try again in a few seconds';
       ovSend.disabled = false;
       ovSend.textContent = 'RETRY';
+    } else if (data.error === 'database_unavailable') {
+      ovStatus.classList.add('error');
+      ovStatus.textContent = 'Leaderboard is offline — your best stays on this device';
+      ovSend.disabled = false;
+      ovSend.textContent = 'RETRY';
     } else {
       ovStatus.classList.add('error');
       ovStatus.textContent = `Couldn't save: ${data.error || 'unknown error'}`;

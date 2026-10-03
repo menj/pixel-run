@@ -7,6 +7,10 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- `index.php` and the API degrade gracefully without a database: the API answers
+  `503 database_unavailable` (never a fatal or a 500) for an unconfigured,
+  unreachable or not-yet-installed database, and the game carries on locally.
+  A damaged `config.local.php` is ignored rather than fatal.
 - Redesigned the dino sprites: larger head with a toothy open jaw, stout
   upright body, tiny forearms and thick legs. The duck pose is a hunch with
   a raised tail spike rather than a long flat shape. Hitboxes are unchanged.

@@ -23,12 +23,12 @@ declare(strict_types=1);
 require __DIR__ . '/includes/db.php';
 require __DIR__ . '/includes/scores.php';
 $cfg = require __DIR__ . '/includes/config.php';
-require __DIR__ . '/includes/installer.php';
 
-// The game always runs. On a fresh upload nobody has configured a database
-// yet, so skip the connection attempt and offer a link to the installer;
-// the page then plays in local-only mode until the leaderboard is set up.
-$needsSetup = installer_needed($cfg);
+// The game always runs. With no database (never set up, unreachable, or not
+// yet installed) this page renders in local-only mode; the leaderboard and
+// score submission simply switch off. On a fresh upload it also offers a
+// link to the optional installer.
+$needsSetup = empty($cfg['configured']);
 $setupLink  = $needsSetup && is_file(__DIR__ . '/install.php');
 
 /* ----------------------------------------------------------------
@@ -39,48 +39,48 @@ $initialScores = [];
 $totalRuns     = 0;
 $flash         = null;   // ['type' => 'success'|'error', 'text' => string]
 $savedRank     = null;
+$isScorePost   = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+              && (($_POST['action'] ?? '') === 'submit_score');
 
-try {
-    if ($needsSetup) {
-        throw new RuntimeException('database not configured');
-    }
-    $pdo = db_connect($cfg['db']);
-    $dbAvailable = true;
+$pdo = db_open($cfg);
+if ($pdo !== null) {
+    try {
+        // ----- POST submission fallback (no-JS) -----
+        if ($isScorePost) {
+            $hash   = ip_hash($cfg['ip_salt'], $cfg['trusted_proxies']);
+            $ua     = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+            $result = process_score_submission($pdo, $cfg, $_POST, $hash, $ua);
 
-    // ----- POST submission fallback (no-JS) -----
-    if (
-        ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
-        && (($_POST['action'] ?? '') === 'submit_score')
-    ) {
-        $hash   = ip_hash($cfg['ip_salt'], $cfg['trusted_proxies']);
-        $ua     = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
-        $result = process_score_submission($pdo, $cfg, $_POST, $hash, $ua);
-
-        if ($result['ok']) {
-            // Post-Redirect-Get: prevents resubmission on refresh. The target
-            // is SCRIPT_NAME (set by the server), never REQUEST_URI (set by
-            // the client), so it cannot be steered to another host.
-            header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?saved=' . (int)$result['rank']);
-            exit;
+            if ($result['ok']) {
+                // Post-Redirect-Get: prevents resubmission on refresh. The target
+                // is SCRIPT_NAME (set by the server), never REQUEST_URI (set by
+                // the client), so it cannot be steered to another host.
+                header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?saved=' . (int)$result['rank']);
+                exit;
+            }
+            $flash = [
+                'type' => 'error',
+                'text' => 'Could not save: ' . $result['error'],
+            ];
         }
-        $flash = [
-            'type' => 'error',
-            'text' => 'Could not save: ' . $result['error'],
-        ];
-    }
 
-    // ----- Initial leaderboard payload (top 20, all characters) -----
-    $initialScores = fetch_top_scores($pdo, null, 20);
-    $totalRuns     = fetch_total_count($pdo);
+        // ----- Initial leaderboard payload (top 20, all characters) -----
+        $initialScores = fetch_top_scores($pdo, null, 20);
+        $totalRuns     = fetch_total_count($pdo);
+        $dbAvailable   = true;   // only once the tables answered
 
-    if (isset($_GET['saved'])) {
-        $savedRank = max(0, (int)$_GET['saved']);
+        if (isset($_GET['saved'])) {
+            $savedRank = max(0, (int)$_GET['saved']);
+        }
+    } catch (Throwable $e) {
+        if (!db_is_missing_table($e)) {
+            error_log('[pixel-run] index: ' . $e->getMessage());
+        }
+        // Page still renders; game falls back to offline mode.
     }
-} catch (Throwable $e) {
-    if (!$needsSetup) {
-        error_log('[pixel-run] index: ' . $e->getMessage());
-    }
-    // Page still renders; game falls back to offline mode.
+}
+if ($isScorePost && !$dbAvailable && $flash === null) {
+    $flash = ['type' => 'error', 'text' => 'The leaderboard is offline, so that score was not saved.'];
 }
 
 /* ----------------------------------------------------------------

@@ -15,7 +15,8 @@
  *   200 { ok: true,  rank: 7, total: 142 }
  *   400 { ok: false, error: "invalid_name_chars" }   (validation)
  *   429 { ok: false, error: "rate_limited" }
- *   500 { ok: false, error: "server_error" }         (database unavailable)
+ *   503 { ok: false, error: "database_unavailable" } (no database; score stays local)
+ *   500 { ok: false, error: "server_error" }
  *
  * Validation, rate-limiting and the insert are shared with the form
  * fallback in index.php through includes/scores.php.
@@ -42,8 +43,12 @@ if (!$check['ok']) {
     send_json(['ok' => false, 'error' => $check['error']], 400);
 }
 
+$pdo = db_open($cfg, $reason);
+if ($pdo === null) {
+    send_unavailable($reason, ['ok' => false]);
+}
+
 try {
-    $pdo  = db_connect($cfg['db']);
     $hash = ip_hash($cfg['ip_salt'], $cfg['trusted_proxies']);
     $ua   = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
 
@@ -55,6 +60,9 @@ try {
     $status = ($result['error'] ?? '') === 'rate_limited' ? 429 : 400;
     send_json($result, $status);
 } catch (Throwable $e) {
+    if (db_is_missing_table($e)) {
+        send_unavailable('not_installed', ['ok' => false]);
+    }
     error_log('[pixel-run] submit_score: ' . $e->getMessage());
     send_json(['ok' => false, 'error' => 'server_error'], 500);
 }
