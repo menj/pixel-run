@@ -25,11 +25,11 @@ require __DIR__ . '/includes/scores.php';
 $cfg = require __DIR__ . '/includes/config.php';
 require __DIR__ . '/includes/installer.php';
 
-// A fresh upload that nobody has configured goes to the installer first.
-if (installer_needed($cfg) && is_file(__DIR__ . '/install.php')) {
-    header('Location: install.php');
-    exit;
-}
+// The game always runs. On a fresh upload nobody has configured a database
+// yet, so skip the connection attempt and offer a link to the installer;
+// the page then plays in local-only mode until the leaderboard is set up.
+$needsSetup = installer_needed($cfg);
+$setupLink  = $needsSetup && is_file(__DIR__ . '/install.php');
 
 /* ----------------------------------------------------------------
  * Database bootstrap
@@ -41,6 +41,9 @@ $flash         = null;   // ['type' => 'success'|'error', 'text' => string]
 $savedRank     = null;
 
 try {
+    if ($needsSetup) {
+        throw new RuntimeException('database not configured');
+    }
     $pdo = db_connect($cfg['db']);
     $dbAvailable = true;
 
@@ -74,7 +77,9 @@ try {
         $savedRank = max(0, (int)$_GET['saved']);
     }
 } catch (Throwable $e) {
-    error_log('[pixel-run] index: ' . $e->getMessage());
+    if (!$needsSetup) {
+        error_log('[pixel-run] index: ' . $e->getMessage());
+    }
     // Page still renders; game falls back to offline mode.
 }
 
@@ -161,6 +166,9 @@ $assetVersion = h((string)$cfg['version']);
       </button>
     </div>
   </div>
+  <?php if ($setupLink): ?>
+  <p class="setup-note">Playing locally. <a href="install.php">Set up the online leaderboard</a> (optional).</p>
+  <?php endif; ?>
   <p id="mode-note" class="mode-note" <?= $flash ? '' : 'hidden' ?>>
     <?= $flash ? h($flash['text']) : '' ?>
   </p>

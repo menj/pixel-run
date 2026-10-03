@@ -202,6 +202,15 @@
     background: rgba(255,71,126,0.1);
     border: 1px solid rgba(255,71,126,0.25);
   }
+  .setup-note {
+    text-align: center;
+    margin: 0;
+    font-size: 15px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 1px;
+  }
+  .setup-note a { color: #FFD700; }
+
   .mode-note.success {
     background: rgba(46,196,182,0.1);
     border-color: rgba(46,196,182,0.3);
