@@ -7,6 +7,9 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added (arcade hub readiness)
+- Each finished run updates the shared `arcade.stats` record in localStorage
+  (best, plays, last score, last played) so a hub on the same domain can show
+  a player's best on the game card. Cheated runs are not recorded.
 - Ready to live at a path such as `/arcade/pixel-run/`: `index.php` now emits a
   `<base>` tag so the game works even without a trailing slash, and the
   sub-folder layout was tested (assets, API, installer, SQLite, admin cookie).

@@ -80,6 +80,11 @@ Paths in `game.json` are relative to the game's folder. A hub on a different
 domain needs CORS headers on that file, or you can copy the values into the
 hub.
 
+**Shared stats.** After each run the game updates `arcade.stats` in the
+browser's localStorage (`{"pixel-run": {best, plays, last, lastPlayed}}`).
+Other games on the same domain, such as Flying Bird, use the same key, so the
+hub can show a player's best score on every card without a server.
+
 **Optional settings** in `includes/config.local.php`:
 
 ```php
