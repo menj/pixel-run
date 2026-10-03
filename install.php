@@ -87,12 +87,17 @@ if (installer_is_installed($cfg)) {
         }
         $form['create_db'] = isset($_POST['create_db']) ? '1' : '';
         [$errors, $db] = installer_validate($_POST);
+        $adminPass = (string)($_POST['admin_pass'] ?? '');
+        if ($adminPass !== '' && strlen($adminPass) < 8) {
+            $errors['admin_pass'] = 'Use at least 8 characters, or leave it blank.';
+        }
 
         if (!$errors) {
             try {
                 installer_install($db, $form['create_db'] === '1');
                 $salt   = bin2hex(random_bytes(32));
-                $source = installer_config_source($db, $salt);
+                $adminHash = $adminPass !== '' ? password_hash($adminPass, PASSWORD_DEFAULT) : '';
+                $source = installer_config_source($db, $salt, $adminHash);
                 if (installer_write_config($source)) {
                     $step = 'done';
                 } else {
@@ -206,6 +211,12 @@ $order = array_keys($steps);
       <label class="field">Password
         <input name="db_pass" type="password" autocomplete="new-password">
       </label>
+      <label class="field">Admin password <span class="opt">(optional)</span>
+        <input name="admin_pass" type="password" autocomplete="new-password">
+        <?php if (isset($errors['admin_pass'])): ?><span class="msg"><?= e($errors['admin_pass']) ?></span><?php endif; ?>
+      </label>
+      <p class="hint">Enables <code>admin.php</code> and the in-game cheat code
+        (god mode, never recorded). Leave blank for no admin.</p>
       <label class="check">
         <input type="checkbox" name="create_db" value="1"<?= $form['create_db'] === '1' ? ' checked' : '' ?>>
         Create the database if it does not exist

@@ -26,6 +26,21 @@ and Mo unlock at best scores of 300 and 600. The 📅 DAILY button plays a
 shared seeded course that changes each UTC day, with its own leaderboard
 tab.
 
+## Admin and the cheat code
+
+Optional. Enter an admin password in the installer (or add
+`'admin_password_hash' => '<password_hash() output>'` to
+`includes/config.local.php`), then sign in at `admin.php`. While signed in,
+type `IDDQD` in the game (or tap the title five times on a touch screen) to
+toggle god mode: you pass through obstacles. Runs that used it are never
+saved to the leaderboard, your best score, unlocks or story progress.
+Without the setting there is no admin and the cheat does not exist. It works
+without a database, but not in `standalone.html`, which has no server.
+
+Anyone can edit browser scripts, so the cheat is gated by the server session
+and cheated runs are kept out of the records instead of trying to hide the
+code.
+
 ## Stories
 
 Each character has a four-chapter story behind the 📖 STORY button. Chapters
@@ -46,6 +61,7 @@ API store, so renaming a character on screen never needs a migration.
 pixel-run/
 ├── index.php              full version: renders the page, serves the form fallback
 ├── install.php            web installer (WordPress-style first-run wizard)
+├── admin.php              admin sign-in for the cheat code
 ├── standalone.html        no-backend version: links the same assets
 ├── assets/
 │   ├── css/style.css      all styling
@@ -57,6 +73,7 @@ pixel-run/
 │   ├── config.php         version and tunables (credentials come from config.local.php)
 │   ├── config.local.php   written by install.php; holds credentials, git-ignored
 │   ├── installer.php      installer logic: checks, schema, settings file
+│   ├── admin.php          admin session and sign-in throttle helpers
 │   ├── db.php             PDO, JSON responses, client IP, CORS
 │   └── scores.php         validation, rate limiting, queries, insert
 ├── api/

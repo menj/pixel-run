@@ -22,7 +22,14 @@ declare(strict_types=1);
 
 require __DIR__ . '/includes/db.php';
 require __DIR__ . '/includes/scores.php';
+require __DIR__ . '/includes/admin.php';
 $cfg = require __DIR__ . '/includes/config.php';
+
+// Only a signed-in admin gets the cheat code; everyone else never sees it.
+$isAdmin = admin_is_logged_in($cfg);
+if ($isAdmin) {
+    header('Cache-Control: private, no-store');
+}
 
 // The game always runs. With no database (never set up, unreachable, or not
 // yet installed) this page renders in local-only mode; the leaderboard and
@@ -104,6 +111,7 @@ $serverData = [
     'initialScores' => $initialScores,
     'totalRuns'     => $totalRuns,
     'savedRank'     => $savedRank,
+    'isAdmin'       => $isAdmin,
 ];
 $serverDataJson = json_encode(
     $serverData,
@@ -187,6 +195,7 @@ $assetVersion = h((string)$cfg['version']);
     <div class="scoreboard">
       <span><span class="label">HI</span><span class="hi" id="hi">00000</span></span>
       <span><span class="label">SC</span><span class="cur" id="sc">00000</span></span>
+      <?php if ($isAdmin): ?><span class="god-badge" id="god-badge" hidden>GOD</span><?php endif; ?>
     </div>
     <canvas id="game" width="960" height="320"></canvas>
     <div class="overlay" id="overlay">

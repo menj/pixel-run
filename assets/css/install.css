@@ -155,3 +155,6 @@ code { padding: 1px 5px; border-radius: 4px; background: var(--code-bg); font-si
   border-radius: 4px;
   background: var(--code-bg);
 }
+
+.opt { color: var(--muted); font-size: 12px; }
+.linklike { background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; }

@@ -962,3 +962,13 @@
     .story-hero canvas { width: 72px; height: 72px; }
     .story-hero h3 { font-size: 12px; }
   }
+
+  .god-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #FF3CAC;
+    color: #fff;
+    font-size: 9px;
+    letter-spacing: 1px;
+    box-shadow: 0 0 12px rgba(255,60,172,0.7);
+  }

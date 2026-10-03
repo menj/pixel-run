@@ -44,6 +44,10 @@ $config = [
     // Rate limit: minimum seconds between submissions per IP hash.
     'rate_limit_seconds' => 3,
 
+    // Hash of the admin password (see admin.php). Empty means admin mode is
+    // off. Set it through install.php, or with password_hash() by hand.
+    'admin_password_hash' => '',
+
     // Salt used when hashing IP addresses. Change to anything unique.
     'ip_salt'            => 'change-this-to-a-random-string-for-your-deployment',
 
@@ -68,6 +72,6 @@ if (is_file($local)) {
 // True once somebody has supplied real database credentials, either through
 // install.php or by editing the defaults above. While false, the game runs
 // in local-only mode and never tries to connect.
-$config['configured'] = is_file($local) || $config['db']['pass'] !== 'CHANGE_THIS_PASSWORD';
+$config['configured'] = $config['db']['pass'] !== 'CHANGE_THIS_PASSWORD';
 
 return $config;

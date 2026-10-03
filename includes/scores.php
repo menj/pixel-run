@@ -130,6 +130,11 @@ function parse_challenge($raw)
  */
 function validate_score_payload(array $input, array $cfg): array
 {
+    // Runs that used the admin cheat code are never recorded.
+    if (!empty($input['cheat'])) {
+        return ['ok' => false, 'error' => 'not_recorded'];
+    }
+
     $name = trim((string)($input['name'] ?? ''));
     $len  = function_exists('mb_strlen') ? mb_strlen($name) : strlen($name);
     if ($len < (int)$cfg['name_min_len'] || $len > (int)$cfg['name_max_len']) {

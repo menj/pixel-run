@@ -20,6 +20,9 @@ function readServerConfig() {
   } catch (_) { return {}; }
 }
 const SERVER = readServerConfig();
+// Set by the server only for a signed-in admin (see admin.php). Anyone can
+// edit this script locally, which is why cheated runs are never recorded.
+const IS_ADMIN = !!SERVER.isAdmin;
 const API_BASE = SERVER.apiBase || './api';
 
 // PHP already verified the database connection on page load,
@@ -236,6 +239,8 @@ const game = {
   hitFlash: 0,        // white flash on collision
   shake: 0,           // screen-shake ticks left after a crash
   jumpBuf: 0,         // ticks a too-early jump press stays queued
+  god: false,         // admin cheat: cannot die (admin sessions only)
+  cheated: false,     // this run used god mode; it is never recorded
   mode: 'normal',     // 'normal' | 'daily'
   dailyDate: '',      // UTC date (YYYY-MM-DD) of the current daily course
   dailyBest: 0,       // best score on today's course, this device
@@ -973,6 +978,7 @@ function beginRun() {
   }
   game.jumpBuf = 0;
   game.shake = 0;
+  game.cheated = game.god;
   dino.squash = 0;
   game.shieldT = trait().startShield || 0;
 }
@@ -990,10 +996,13 @@ const MEDALS = { bronze: 100, silver: 300, gold: 600 };
 
 function gameOver() {
   game.state = 'over';
+  const cheated = game.cheated;   // god mode was used: record nothing
   let newBest;
   let unlocked = [];
   const newChapters = [];
-  if (game.mode === 'daily') {
+  if (cheated) {
+    newBest = false;
+  } else if (game.mode === 'daily') {
     newBest = game.score > game.dailyBest;
     if (newBest) {
       game.dailyBest = game.score;
@@ -1034,7 +1043,7 @@ function gameOver() {
   ovAgain.hidden = false;
 
   // Submission UI: only offer in online mode with a working API.
-  if (gameMode === 'online' && API_AVAILABLE && game.score > 0) {
+  if (gameMode === 'online' && API_AVAILABLE && game.score > 0 && !cheated) {
     ovSubmit.hidden = false;
     ovStatus.textContent = '';
     ovStatus.classList.remove('error');
@@ -1049,13 +1058,14 @@ function gameOver() {
   const tier = game.score >= MEDALS.gold ? 'gold'
              : game.score >= MEDALS.silver ? 'silver'
              : game.score >= MEDALS.bronze ? 'bronze' : '';
-  ovMedal.hidden = !tier;
+  ovMedal.hidden = !tier || cheated;
   if (tier) {
     ovMedal.dataset.tier = tier;
     ovMedal.querySelector('.medal-label').textContent = tier.toUpperCase();
   }
   ovBest.hidden = !newBest;
-  ovResult.hidden = !tier && !newBest;
+  ovResult.hidden = cheated || (!tier && !newBest);
+  if (cheated) ovSub.innerHTML += '<br><span class="accent-bomb">Admin run — not recorded</span>';
 
   // Brief hit-stop so the collision registers before the panel appears.
   clearTimeout(game.overTimer);
@@ -1260,6 +1270,36 @@ lbTabs.forEach((tab) => {
     loadLeaderboard(tab.dataset.filter);
   });
 });
+
+/* ---------- admin cheat code (god mode) ---------- */
+// Only wired up when the server says this browser is a signed-in admin.
+// Type IDDQD, or tap the title five times on a touch screen.
+const godBadge = document.getElementById('god-badge');
+function toggleGod() {
+  game.god = !game.god;
+  if (game.god && game.state === 'running') game.cheated = true;
+  if (godBadge) godBadge.hidden = !game.god;
+  showModeNote(game.god ? 'God mode ON (admin): this run will not be recorded' : 'God mode OFF', game.god);
+}
+if (IS_ADMIN) {
+  let typed = '';
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat || isTypingTarget(e.target) || !storyModal.hidden || !lbModal.hidden) return;
+    if (!/^Key[A-Z]$/.test(e.code)) { typed = ''; return; }
+    typed = (typed + e.code.slice(3).toLowerCase()).slice(-5);
+    if (typed === 'iddqd') { typed = ''; toggleGod(); }
+  });
+  const title = document.querySelector('header h1');
+  if (title) {
+    let taps = 0, timer = 0;
+    title.addEventListener('pointerdown', () => {
+      taps++;
+      clearTimeout(timer);
+      timer = setTimeout(() => { taps = 0; }, 2000);
+      if (taps >= 5) { taps = 0; toggleGod(); }
+    });
+  }
+}
 
 /* ---------- character stories ---------- */
 // Text lives in stories.js. A chapter opens once the best score reaches its
@@ -1611,6 +1651,8 @@ function update() {
         spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
         obstacles.splice(i, 1);
         game.score += 5;
+      } else if (game.god) {
+        game.cheated = true;   // admin god mode: pass straight through
       } else {
         gameOver();
         break;
@@ -1674,7 +1716,9 @@ function render() {
   // gifts (in front of obstacles so the player sees them)
   for (const g of gifts) drawGift(g);
 
+  if (game.god) ctx.globalAlpha = 0.55;
   drawPlayer();
+  ctx.globalAlpha = 1;
 
   // shield bubble
   if (game.shieldT > 0) {

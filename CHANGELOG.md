@@ -6,6 +6,16 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (admin)
+- Admin mode and a cheat code. Set an admin password in the installer (or an
+  `admin_password_hash` in `includes/config.local.php`), sign in at
+  `admin.php`, then type `IDDQD` in the game (or tap the title five times on
+  a touch screen) to toggle god mode: obstacles no longer end the run. It
+  only exists for a signed-in admin, needs no database, and runs that used it
+  are never recorded (no best score, unlocks, chapters or leaderboard entry;
+  `submit-score.php` also rejects a cheated payload). Sign-in is throttled to
+  6 failures per 15 minutes per client.
+
 ### Added (stories)
 - Every character has a four-chapter story, opened with the 📖 STORY button.
   Chapters unlock as the best score rises (Eeny and Meeny at 0, 100, 300 and
