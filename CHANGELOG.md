@@ -7,7 +7,7 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- Redesigned the T-Rex sprites: larger head with a toothy open jaw, stout
+- Redesigned the dino sprites: larger head with a toothy open jaw, stout
   upright body, tiny forearms and thick legs. The duck pose is a hunch with
   a raised tail spike rather than a long flat shape. Hitboxes are unchanged.
 

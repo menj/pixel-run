@@ -16,9 +16,9 @@
 
   var SCALE = 2;
 
-  /* ---------- dino (T-rex), 22 x 22 ---------- */
+  /* ---------- dino, 22 x 22 ---------- */
   // Deep boxy head with a short snout and brow ridge, an upright body,
-  // tiny forearms and thick legs, so it reads as a T-rex rather than a
+  // tiny forearms and thick legs, so it reads as a dino rather than a
   // lizard or crocodile.
   var DINO_PALETTE = {
     d: '#5A8B3A', // sage body
