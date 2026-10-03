@@ -48,6 +48,14 @@ $config = [
     // Rate limit: minimum seconds between submissions per IP hash.
     'rate_limit_seconds' => 3,
 
+    // Hosting inside an arcade hub (for example menj.buzz/arcade/pixel-run/).
+    // public_url: this game's full public address, used for share previews.
+    //   Leave empty to detect it from the request.
+    // arcade_url: where the "back to arcade" link goes (a path such as
+    //   '../' or a full https:// address). Leave empty for no link.
+    'public_url'         => '',
+    'arcade_url'         => '',
+
     // Hash of the admin password (see admin.php). Empty means admin mode is
     // off. Set it through install.php, or with password_hash() by hand.
     'admin_password_hash' => '',

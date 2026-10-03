@@ -112,6 +112,7 @@ $serverData = [
     'totalRuns'     => $totalRuns,
     'savedRank'     => $savedRank,
     'isAdmin'       => $isAdmin,
+    'arcadeUrl'     => preg_match('~^(/|\\.{1,2}/|https?://)~', (string)($cfg['arcade_url'] ?? '')) ? (string)$cfg['arcade_url'] : '',
 ];
 $serverDataJson = json_encode(
     $serverData,
@@ -120,12 +121,39 @@ $serverDataJson = json_encode(
 ) ?: '{}';
 
 $assetVersion = h((string)$cfg['version']);
+
+// Where this game is served from. A <base> tag makes every relative URL (the
+// assets, the API, the installer) resolve to the game's own folder even when
+// the page is opened as /arcade/pixel-run without the trailing slash.
+$baseDir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/') . '/';
+
+// Absolute address for share previews (Open Graph needs full URLs).
+$publicUrl = trim((string)($cfg['public_url'] ?? ''));
+if ($publicUrl === '') {
+    $https     = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    $publicUrl = ($https ? 'https' : 'http') . '://' . (string)($_SERVER['HTTP_HOST'] ?? 'localhost') . $baseDir;
+}
+$publicUrl = rtrim($publicUrl, '/') . '/';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<base href="<?= h($baseDir) ?>">
 <title>Pixel Run — Colour Edition</title>
+<meta name="description" content="Pixel Run: a pixel-art endless runner with four heroes, a day and night cycle, a daily challenge and a leaderboard.">
+<meta name="theme-color" content="#0d0221">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pixel Run">
+<meta property="og:description" content="Jump the cacti, duck the birds, and pick your hero: Eeny, Meeny, Miny or Moe.">
+<meta property="og:url" content="<?= h($publicUrl) ?>">
+<meta property="og:image" content="<?= h($publicUrl) ?>assets/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
