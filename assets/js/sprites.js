@@ -592,7 +592,146 @@
     shield: { palette: SHIELD_PALETTE, frames: { box: GIFT } },
   };
 
-  var api = { SCALE: SCALE, SETS: SETS, outline: outline };
+  /* ---------- refinement: more detail, smoother edges, light and shade ----------
+     The grids above are the hand-drawn designs. Every frame is processed once
+     at load so the sprites look sharper on modern screens:
+       1. Scale2x (EPX) doubles the resolution and rounds off staircase edges
+          without blurring or inventing colours.
+       2. A light-and-shade pass lightens cells on upper edges and darkens cells
+          on lower edges of the main colours (light from above), which gives
+          volume. Small details such as eyes and teeth are left alone.
+       3. A thin one-cell outline is added around the result.
+       4. Transparent padding restores the original sprite size, so hitboxes
+          and ground contact are unchanged.
+     After this, one grid cell is one game unit (SCALE = 1). */
+
+  function mixHex(hex, f) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    var target = f > 0 ? 255 : 0, a = Math.abs(f);
+    r = Math.round(r + (target - r) * a);
+    g = Math.round(g + (target - g) * a);
+    b = Math.round(b + (target - b) * a);
+    return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+  }
+
+  function cellAt(rows, x, y) {
+    return (y < 0 || x < 0 || y >= rows.length || x >= rows[0].length) ? '.' : rows[y][x];
+  }
+
+  function scale2x(rows) {
+    var h = rows.length, w = rows[0].length, out = [];
+    for (var y = 0; y < h; y++) {
+      var r0 = '', r1 = '';
+      for (var x = 0; x < w; x++) {
+        var P = rows[y][x];
+        var A = cellAt(rows, x, y - 1), B = cellAt(rows, x + 1, y);
+        var C = cellAt(rows, x - 1, y), D = cellAt(rows, x, y + 1);
+        r0 += ((C === A && C !== D && A !== B) ? A : P) + ((A === B && A !== C && B !== D) ? B : P);
+        r1 += ((D === C && D !== B && C !== A) ? C : P) + ((B === D && B !== A && D !== C) ? D : P);
+      }
+      out.push(r0, r1);
+    }
+    return out;
+  }
+
+  // Palette extended with a lighter and a darker variant of every colour.
+  function shadedPalette(palette) {
+    var out = {}, keys = Object.keys(palette), hi = {}, lo = {};
+    keys.forEach(function (k, i) {
+      out[k] = palette[k];
+      if (k === '#') return;
+      hi[k] = String.fromCharCode(0x100 + i * 2);
+      lo[k] = String.fromCharCode(0x101 + i * 2);
+      out[hi[k]] = mixHex(palette[k], 0.22);
+      out[lo[k]] = mixHex(palette[k], -0.26);
+    });
+    return { palette: out, hi: hi, lo: lo };
+  }
+
+  function lightAndShade(rows, sp) {
+    var h = rows.length, w = rows[0].length, count = {}, total = 0, y, x;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      var c = rows[y][x];
+      if (c !== '.' && c !== '#') { count[c] = (count[c] || 0) + 1; total++; }
+    }
+    var major = {};
+    Object.keys(count).forEach(function (k) { if (count[k] > total * 0.06 && sp.hi[k]) major[k] = true; });
+    function solid(xx, yy) { var ch = cellAt(rows, xx, yy); return ch !== '.' && ch !== '#'; }
+    var out = [];
+    for (y = 0; y < h; y++) {
+      var line = '';
+      for (x = 0; x < w; x++) {
+        var ch = rows[y][x];
+        if (!major[ch]) { line += ch; continue; }
+        var top = !solid(x, y - 1) || (!solid(x - 1, y - 1) && !solid(x - 1, y));
+        var bot = !solid(x, y + 1) || !solid(x + 1, y);
+        var top2 = !solid(x, y - 2), bot2 = !solid(x, y + 2);
+        if (bot || (bot2 && !top)) line += sp.lo[ch];
+        else if (top || (top2 && !bot2)) line += sp.hi[ch];
+        else line += ch;
+      }
+      out.push(line);
+    }
+    return out;
+  }
+
+  function refineFrame(rows, sp) {
+    var framed = outline(lightAndShade(scale2x(rows), sp));       // (2h + 2) x (2w + 2)
+    var side = '.', blank = new Array(framed[0].length + 3).join('.');
+    var padded = framed.map(function (l) { return side + l + side; });
+    return [blank, blank].concat(padded);                        // (2h + 4) x (2w + 4)
+  }
+
+  Object.keys(SETS).forEach(function (id) {
+    var set = SETS[id], sp = shadedPalette(set.palette);
+    Object.keys(set.frames).forEach(function (name) {
+      set.frames[name] = refineFrame(set.frames[name], sp);
+    });
+    set.palette = sp.palette;
+  });
+
+  /* ---------- faces: where the reactions are drawn ----------
+     Coordinates are in final sprite units from the sprite's top-left. For each
+     character and pose (stand covers the run frames too, since only the legs
+     differ):
+       eyes   centres of the eye(s) to replace
+       patch  rectangle that hides the baked-in eye (x, y, w, h)
+       fill   a cell whose colour matches the patch surroundings
+       mouth  where a tongue (or sparks) comes out
+       head   top of the head, where stars, sweat and Z's appear
+     Eyes are drawn as a white socket (creatures) or glowing marks on the visor
+     (the robot, which has two). */
+  var FACES = {
+    dino: {
+      stand: { eyes: [[31.5, 10.5]], patch: [28, 7, 9, 7],  fill: [27, 10], mouth: [38.5, 17],  head: [36, 4] },
+      duck:  { eyes: [[49.5, 8.5]],  patch: [46, 5, 9, 7],  fill: [45, 8],  mouth: [56.5, 15],  head: [52, 3] },
+    },
+    cat: {
+      stand: { eyes: [[37.5, 10.5]], patch: [34, 7, 8, 7],  fill: [33, 10], mouth: [38.5, 16.5], head: [33, 3] },
+      duck:  { eyes: [[51.5, 8.5]],  patch: [48, 5, 8, 7],  fill: [47, 8],  mouth: [55.5, 15],   head: [50, 3] },
+    },
+    penguin: {
+      stand: { eyes: [[28, 10.5]],   patch: [24, 7, 9, 7],  fill: [23, 10], mouth: [38, 15.5],   head: [30, 3] },
+      duck:  { eyes: [[48, 8.5]],    patch: [44, 5, 9, 7],  fill: [43, 8],  mouth: [58, 13.5],   head: [48, 3] },
+    },
+    robot: {
+      stand: { eyes: [[21.5, 12.5], [30.5, 12.5]], patch: [16, 11, 20, 4], fill: [20, 13], mouth: [26, 16], head: [25, 2] },
+      duck:  { eyes: [[42.5, 8.5], [55.5, 8.5]],   patch: [36, 7, 24, 4],  fill: [40, 9],  mouth: [48, 12], head: [47, 2] },
+    },
+  };
+  // Turn each `fill` cell into a colour so the patch blends with the sprite.
+  Object.keys(FACES).forEach(function (id) {
+    Object.keys(FACES[id]).forEach(function (pose) {
+      var f = FACES[id][pose];
+      var frame = SETS[id].frames[pose === 'duck' ? 'duckA' : 'stand'];
+      var ch = frame[f.fill[1]][f.fill[0]];
+      f.fillColor = SETS[id].palette[ch] || '#888888';
+    });
+  });
+
+  // The frames are final, so the loader's outline step becomes a no-op.
+  var api = { SCALE: 1, SETS: SETS, FACES: FACES, outline: function (rows) { return rows; } };
   if (typeof window !== 'undefined') window.PixelRunSprites = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

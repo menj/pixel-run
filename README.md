@@ -2,7 +2,7 @@
 
 A pixel-art endless runner in the spirit of the browser offline game, with
 a colour day-and-night cycle, four playable characters (Eeny the dino,
-Meeny the tabby cat, Miney the penguin and Mo the bot), bomb and shield pickups, synthesised sound, and an optional global
+Meeny the tabby cat, Miny the penguin and Moe the bot), bomb and shield pickups, synthesised sound, and an optional global
 leaderboard backed by MySQL/MariaDB, PostgreSQL or SQLite and PHP.
 
 Version 1.0.0. See `CHANGELOG.md` for release notes and `UPGRADING.md`
@@ -21,8 +21,8 @@ Both pages load the same `assets/` files, so gameplay is identical.
 
 Space or ↑ jumps (hold to jump higher), ↓ ducks, R restarts, M mutes. On
 touch screens use the on-screen buttons or tap the game. Each character has
-a trait (Miney glides while jump is held, Mo starts with a shield). Miney
-and Mo unlock at best scores of 300 and 600. The 📅 DAILY button plays a
+a trait (Miny glides while jump is held, Moe starts with a shield). Miny
+and Moe unlock at best scores of 300 and 600. The 📅 DAILY button plays a
 shared seeded course that changes each UTC day, with its own leaderboard
 tab.
 
@@ -41,6 +41,15 @@ Anyone can edit browser scripts, so the cheat is gated by the server session
 and cheated runs are kept out of the records instead of trying to hide the
 code.
 
+## Reactions
+
+Characters react to what happens: a crash topples them with X-eyes, a
+lolling tongue and a joke; a close call earns a sweat drop and a "PHEW!"; pickups
+and score milestones get shocked or happy faces; and on the title screen they
+blink and eventually doze off. Faces are drawn over the sprite using the eye,
+mouth and head positions in `FACES` (`assets/js/sprites.js`), and the jokes are
+the `QUIPS` lists in `assets/js/game.js`, so both are easy to change.
+
 ## Stories
 
 Each character has a four-chapter story behind the 📖 STORY button. Chapters
@@ -49,7 +58,7 @@ Edit `assets/js/stories.js` to change the text or add a language.
 
 ## Characters
 
-Eeny (dino), Meeny (tabby cat), Miney (penguin) and Mo (bot). They are
+Eeny (dino), Meeny (tabby cat), Miny (penguin) and Moe (bot). They are
 labelled DINO, CAT, PENGUIN and BOT in the picker and leaderboard, and
 called by name in in-game text. The
 internal ids `dino`, `cat`, `penguin` and `robot` are what the database and
@@ -207,10 +216,14 @@ gets 400 even with the database down) and then records; the form fallback
 runs both through `process_score_submission()`.
 
 **Sprites as data.** `assets/js/sprites.js` describes every frame as a
-character grid with a palette. `game.js` adds a one-cell outline, renders
-each frame once to an offscreen canvas at 2x, and blits from there. To
-change a sprite, edit the grid; frame sizes must stay as documented in
-the file because the hitboxes depend on them.
+character grid with a palette. At load, each frame is refined once: Scale2x
+doubles the resolution and rounds off staircase edges, a light-and-shade
+pass adds volume (lighter on top edges, darker underneath, eyes and teeth
+untouched), and a thin outline is added. Padding restores the original
+frame size, so hitboxes are unaffected. `game.js` then renders each frame
+once to an offscreen canvas at the screen's real pixel density and blits
+from there. To change a sprite, edit the grid; frame sizes must stay as
+documented in the file because the hitboxes depend on them.
 
 **Fixed timestep.** Game logic runs at exactly 60 updates per second on
 any display; rendering runs at the display's rate. Speed and score are
