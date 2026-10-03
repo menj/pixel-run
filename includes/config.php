@@ -57,7 +57,17 @@ $config = [
 // it survives upgrades because the file is not part of the package.
 $local = __DIR__ . '/config.local.php';
 if (is_file($local)) {
-    $config = array_replace_recursive($config, (array)require $local);
+    try {
+        $config = array_replace_recursive($config, (array)require $local);
+    } catch (Throwable $e) {
+        // A damaged settings file must not take the game down with it.
+        error_log('[pixel-run] ignoring unreadable config.local.php: ' . $e->getMessage());
+    }
 }
+
+// True once somebody has supplied real database credentials, either through
+// install.php or by editing the defaults above. While false, the game runs
+// in local-only mode and never tries to connect.
+$config['configured'] = is_file($local) || $config['db']['pass'] !== 'CHANGE_THIS_PASSWORD';
 
 return $config;

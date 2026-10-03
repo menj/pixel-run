@@ -7,11 +7,25 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- Characters are now named Eeny (dino), Meeny (cat), Miney (penguin) and Mo
+  (robot) in the picker and leaderboard. Stored ids are unchanged.
+- `index.php` and the API degrade gracefully without a database: the API answers
+  `503 database_unavailable` (never a fatal or a 500) for an unconfigured,
+  unreachable or not-yet-installed database, and the game carries on locally.
+  A damaged `config.local.php` is ignored rather than fatal.
 - Redesigned the dino sprites: larger head with a toothy open jaw, stout
   upright body, tiny forearms and thick legs. The duck pose is a hunch with
   a raised tail spike rather than a long flat shape. Hitboxes are unchanged.
 
 ### Added
+- Responsive layout for desktop, tablet, phone and landscape phone. The page
+  scrolls instead of clipping, the picker becomes a 4-up grid on phones, and
+  the game-over card becomes a full-screen sheet on small screens.
+- Touch controls (hold-to-duck and jump buttons, tap the canvas to jump, tap
+  to start or retry) shown on touch devices, and on hybrid devices once a
+  touch is seen. A PLAY AGAIN button appears on game over. Keyboard controls
+  are unchanged. Audio now unlocks on the first touch release, as mobile
+  browsers require.
 - Web installer (`install.php`): checks requirements, creates or upgrades the
   tables from `sql/schema.sql`, and writes credentials and a random `ip_salt`
   to `includes/config.local.php`. Fresh uploads play locally with a link to it

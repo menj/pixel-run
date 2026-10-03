@@ -26,10 +26,12 @@
   .accent-shield { color: #48CAE4; }
 
   html, body {
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
+    overflow-x: hidden;
+    touch-action: manipulation;   /* no double-tap zoom delay while playing */
     font-family: 'VT323', monospace;
     background: #0d0221;
+    background-attachment: fixed;
     background-image:
       radial-gradient(circle at 15% 20%, rgba(255,60,172,0.25), transparent 40%),
       radial-gradient(circle at 85% 75%, rgba(43,134,197,0.30), transparent 45%),
@@ -40,6 +42,8 @@
   }
 
   body {
+    min-height: 100vh;
+    min-height: 100dvh;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     place-items: center;
@@ -501,12 +505,6 @@
     outline-offset: 2px;
   }
 
-  @media (max-width: 640px) {
-    body { padding: 12px; }
-    .char-btn { padding: 8px 12px; gap: 6px; font-size: 10px; }
-    .char-btn .char-emoji { font-size: 16px; }
-  }
-
   canvas {
     display: block;
     width: 100%;
@@ -690,4 +688,172 @@
     color: #fff;
     font-family: 'Press Start 2P', monospace;
     font-size: 11px;
+  }
+
+  /* ============================================================
+     Touch controls and the game-over "play again" button
+     ============================================================ */
+  .touch-controls {
+    display: none;
+    gap: 12px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .touch-btn {
+    flex: 1;
+    min-height: 64px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: linear-gradient(180deg, #3d2360, #1a1033);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    letter-spacing: 1px;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+  }
+  .touch-btn.touch-jump {
+    flex: 1.5;
+    border-color: rgba(255,60,172,0.55);
+    box-shadow: 0 8px 24px -10px rgba(255,60,172,0.6);
+  }
+  .touch-btn.pressed { transform: scale(0.97); filter: brightness(1.25); }
+
+  .ov-again {
+    margin-top: 12px;
+    padding: 12px 22px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(92deg, #FF3CAC 0%, #784BA0 50%, #2B86C5 100%);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+
+  /* Touch devices: on-screen buttons replace the keyboard legend. */
+  @media (pointer: coarse) {
+    .touch-controls { display: flex; }
+    .controls { display: none; }
+  }
+  /* Same thing for hybrid devices once a touch is seen (set by game.js). */
+  .touch-ui .touch-controls { display: flex; }
+  .touch-ui .controls { display: none; }
+  .touch-btn { -webkit-touch-callout: none; }
+
+  /* ============================================================
+     Responsive layout
+       desktop  >= 1024px   (large screens grow a little: >= 1280px)
+       tablet   641-1023px
+       mobile   <= 640px
+       landscape phones (short viewports) get their own compact layout
+     ============================================================ */
+
+  /* Large desktop: let the canvas scale up a little. */
+  @media (min-width: 1280px) {
+    .stage { width: min(1120px, 100%); }
+    .scoreboard { font-size: 15px; top: 22px; right: 28px; }
+  }
+
+  /* Tablet */
+  @media (min-width: 641px) and (max-width: 1023px) {
+    body { padding: 20px; }
+    .stage { gap: 16px; }
+    .scoreboard { top: 14px; right: 18px; font-size: 12px; }
+    .touch-btn { min-height: 72px; font-size: 16px; }
+  }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    body {
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+      place-items: start center;
+    }
+    .stage { gap: 12px; }
+    header { padding: 0 2px; }
+    h1 { font-size: 13px; }
+    .subtitle { font-size: 13px; letter-spacing: 1px; }
+
+    .toolbar { flex-direction: column; align-items: stretch; gap: 10px; padding: 0; }
+    .char-picker {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 0;
+    }
+    .char-btn {
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 2px;
+      border-radius: 14px;
+      font-size: 8px;
+      letter-spacing: 0;
+    }
+    .char-btn .char-emoji { font-size: 22px; }
+    .toolbar-right { justify-content: center; }
+
+    .frame { border-radius: 12px; }
+    .scoreboard { top: 6px; right: 8px; gap: 8px; font-size: 8px; }
+
+    /* The canvas is short on a phone, so the idle prompt stays compact and
+       the game-over card becomes a full-screen sheet with room for the form. */
+    .overlay-card { padding: 6px 10px; }
+    .overlay h2 { font-size: 12px; margin-bottom: 4px; }
+    .overlay p { font-size: 14px; margin-bottom: 2px; }
+    .overlay.is-over {
+      position: fixed;
+      z-index: 60;
+      backdrop-filter: blur(6px);
+    }
+    .overlay.is-over h2 { font-size: 22px; margin-bottom: 12px; }
+    .overlay.is-over p { font-size: 20px; }
+    #ov-name { width: 140px; font-size: 12px; }
+
+    .touch-btn { min-height: 76px; }
+    .controls { font-size: 16px; gap: 8px; }
+    .lb-modal { padding: 12px; }
+    .lb-card { max-height: 88vh; max-height: 88dvh; }
+  }
+
+  /* Very narrow phones */
+  @media (max-width: 360px) {
+    .char-btn { font-size: 7px; }
+    .char-btn .char-emoji { font-size: 18px; }
+  }
+
+  /* Landscape phones and other short viewports: fit everything on one
+     screen, with the touch buttons floating in the bottom corners. */
+  @media (max-height: 520px) and (orientation: landscape) {
+    body { padding: 6px; place-items: start center; }
+    .stage { gap: 6px; width: 100%; }
+    header, .controls, .footer-mark, .setup-note { display: none; }
+    .toolbar { flex-direction: row; flex-wrap: nowrap; gap: 8px; padding: 0; }
+    .char-picker { display: flex; flex-wrap: nowrap; gap: 6px; padding: 0; }
+    .char-btn { flex-direction: row; padding: 4px 10px; gap: 6px; font-size: 9px; }
+    .char-btn .char-emoji { font-size: 14px; }
+    .frame {
+      width: min(100%, calc((100vh - 70px) * 3));
+      width: min(100%, calc((100dvh - 70px) * 3));
+      margin-inline: auto;
+    }
+    .touch-controls {
+      position: fixed;
+      left: max(12px, env(safe-area-inset-left, 0px));
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: max(10px, env(safe-area-inset-bottom, 0px));
+      pointer-events: none;
+      z-index: 40;
+    }
+    .touch-controls .touch-btn,
+    .touch-controls .touch-btn.touch-jump {
+      pointer-events: auto;
+      flex: 0 0 130px;
+      min-height: 56px;
+      opacity: 0.85;
+    }
+    .touch-controls .touch-btn.touch-jump { margin-left: auto; }
+    .overlay.is-over { position: absolute; }
   }

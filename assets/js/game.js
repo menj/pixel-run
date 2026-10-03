@@ -1,6 +1,6 @@
 /* ============================================================
    PIXEL RUN — COLOUR EDITION
-   A vivid take on the offline runner. Switch between dino, cat, penguin & robot.
+   A vivid take on the offline runner. Pick Eeny, Meeny, Miney or Mo.
    Backend: PHP server-side rendering + AJAX leaderboard updates.
    Requires assets/js/sprites.js to be loaded first.
    ============================================================ */
@@ -61,6 +61,7 @@ const overlay = document.getElementById('overlay');
 const ovTitle = document.getElementById('ov-title');
 const ovSub   = document.getElementById('ov-sub');
 const ovSubmit = document.getElementById('ov-submit');
+const ovAgain  = document.getElementById('ov-again');
 const ovResult = document.getElementById('ov-result');
 const ovMedal  = document.getElementById('ov-medal');
 const ovBest   = document.getElementById('ov-best');
@@ -764,6 +765,72 @@ canvas.addEventListener('pointerdown', () => {
   else jump();
 });
 
+/* touch: coarse pointers get on-screen buttons and tap wording */
+const COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+if (COARSE) ovTitle.textContent = 'TAP TO PLAY';
+
+// Hybrid devices (touch laptops, tablets with a keyboard) report a fine
+// primary pointer, so also switch the touch UI on the first real touch.
+function enableTouchUi() {
+  if (document.documentElement.classList.contains('touch-ui')) return;
+  document.documentElement.classList.add('touch-ui');
+  if (game.state === 'idle') ovTitle.textContent = 'TAP TO PLAY';
+}
+if (COARSE) document.documentElement.classList.add('touch-ui');
+window.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'touch' || e.pointerType === 'pen') enableTouchUi();
+}, { passive: true });
+
+// Browsers only allow audio to start from certain events, and on touch
+// screens pointerdown is not one of them; pointerup/touchend are. Unlock on
+// whichever arrives first, then stop listening.
+function unlockAudio() {
+  const c = ensureAudio();
+  if (c && c.state === 'running') {
+    ['pointerup', 'touchend', 'keydown'].forEach((ev) => window.removeEventListener(ev, unlockAudio));
+  }
+}
+['pointerup', 'touchend', 'keydown'].forEach((ev) => window.addEventListener(ev, unlockAudio, { passive: true }));
+
+// Taps on the dimmed overlay: start from the title screen, or retry from
+// game over when there is no name form to protect from stray taps.
+overlay.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('#ov-submit, #ov-again')) return;
+  if (game.state === 'idle') jump();
+  else if (game.state === 'over' && ovSubmit.hidden) restart();
+});
+ovAgain.addEventListener('click', () => { if (game.state === 'over') restart(); });
+
+const touchJump = document.getElementById('touch-jump');
+const touchDuck = document.getElementById('touch-duck');
+if (touchJump && touchDuck) {
+  touchJump.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    touchJump.classList.add('pressed');
+    if (game.state === 'over') { if (ovSubmit.hidden) restart(); }
+    else jump();
+  });
+  // Keyboard or screen-reader activation (Enter/Space on the focused button).
+  touchJump.addEventListener('click', (e) => {
+    if (e.detail === 0 && game.state !== 'over') jump();
+  });
+  document.getElementById('touch-controls').addEventListener('contextmenu', (e) => e.preventDefault());
+  const releaseJump = () => touchJump.classList.remove('pressed');
+  touchJump.addEventListener('pointerup', releaseJump);
+  touchJump.addEventListener('pointercancel', releaseJump);
+  touchJump.addEventListener('pointerleave', releaseJump);
+
+  touchDuck.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    touchDuck.setPointerCapture(e.pointerId);
+    touchDuck.classList.add('pressed');
+    duckOn();
+  });
+  const releaseDuck = () => { touchDuck.classList.remove('pressed'); duckOff(); };
+  touchDuck.addEventListener('pointerup', releaseDuck);
+  touchDuck.addEventListener('pointercancel', releaseDuck);
+}
+
 /* character picker */
 document.querySelectorAll('.char-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -796,7 +863,11 @@ function gameOver() {
   game.hitFlash = 10;
   SFX.gameover();
   ovTitle.textContent = 'GAME OVER';
-  ovSub.innerHTML = `Score <span class="accent-gold">${pad(game.score)}</span> · press <span class="key">R</span> or tap to retry`;
+  ovSub.innerHTML = COARSE
+    ? `Score <span class="accent-gold">${pad(game.score)}</span>`
+    : `Score <span class="accent-gold">${pad(game.score)}</span> · press <span class="key">R</span> or tap to retry`;
+  overlay.classList.add('is-over');
+  ovAgain.hidden = false;
 
   // Submission UI: only offer in online mode with a working API.
   if (gameMode === 'online' && API_AVAILABLE && game.score > 0) {
@@ -830,6 +901,8 @@ function gameOver() {
 function restart() {
   clearTimeout(game.overTimer);
   ovResult.hidden = true;
+  ovAgain.hidden = true;
+  overlay.classList.remove('is-over');
   game.hitFlash = 0;
   SFX.swoosh();
   obstacles.length = 0;
@@ -913,6 +986,11 @@ async function submitScore() {
       ovStatus.textContent = 'Slow down — try again in a few seconds';
       ovSend.disabled = false;
       ovSend.textContent = 'RETRY';
+    } else if (data.error === 'database_unavailable') {
+      ovStatus.classList.add('error');
+      ovStatus.textContent = 'Leaderboard is offline — your best stays on this device';
+      ovSend.disabled = false;
+      ovSend.textContent = 'RETRY';
     } else {
       ovStatus.classList.add('error');
       ovStatus.textContent = `Couldn't save: ${data.error || 'unknown error'}`;
@@ -957,7 +1035,10 @@ async function loadLeaderboard(filter = 'all') {
   }
 }
 
+// Ids (dino, cat, penguin, robot) are stored in the database and the API and
+// never change; these are the names players see.
 const CHAR_ICONS = { dino: '🦖', cat: '🐱', penguin: '🐧', robot: '🤖' };
+const CHAR_NAMES = { dino: 'Eeny', cat: 'Meeny', penguin: 'Miney', robot: 'Mo' };
 
 function renderLeaderboard(scores, total) {
   if (!scores || scores.length === 0) {
@@ -973,7 +1054,7 @@ function renderLeaderboard(scores, total) {
     return `
       <div class="lb-row" data-rank="${rank}">
         <div class="lb-rank">#${rank}</div>
-        <div class="lb-icon-cell">${icon}</div>
+        <div class="lb-icon-cell" title="${CHAR_NAMES[row.character_type] || CHAR_NAMES.dino}">${icon}</div>
         <div class="lb-name">${name}</div>
         <div class="lb-score">${score}</div>
       </div>`;

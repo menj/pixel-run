@@ -23,12 +23,12 @@ declare(strict_types=1);
 require __DIR__ . '/includes/db.php';
 require __DIR__ . '/includes/scores.php';
 $cfg = require __DIR__ . '/includes/config.php';
-require __DIR__ . '/includes/installer.php';
 
-// The game always runs. On a fresh upload nobody has configured a database
-// yet, so skip the connection attempt and offer a link to the installer;
-// the page then plays in local-only mode until the leaderboard is set up.
-$needsSetup = installer_needed($cfg);
+// The game always runs. With no database (never set up, unreachable, or not
+// yet installed) this page renders in local-only mode; the leaderboard and
+// score submission simply switch off. On a fresh upload it also offers a
+// link to the optional installer.
+$needsSetup = empty($cfg['configured']);
 $setupLink  = $needsSetup && is_file(__DIR__ . '/install.php');
 
 /* ----------------------------------------------------------------
@@ -39,48 +39,48 @@ $initialScores = [];
 $totalRuns     = 0;
 $flash         = null;   // ['type' => 'success'|'error', 'text' => string]
 $savedRank     = null;
+$isScorePost   = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+              && (($_POST['action'] ?? '') === 'submit_score');
 
-try {
-    if ($needsSetup) {
-        throw new RuntimeException('database not configured');
-    }
-    $pdo = db_connect($cfg['db']);
-    $dbAvailable = true;
+$pdo = db_open($cfg);
+if ($pdo !== null) {
+    try {
+        // ----- POST submission fallback (no-JS) -----
+        if ($isScorePost) {
+            $hash   = ip_hash($cfg['ip_salt'], $cfg['trusted_proxies']);
+            $ua     = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+            $result = process_score_submission($pdo, $cfg, $_POST, $hash, $ua);
 
-    // ----- POST submission fallback (no-JS) -----
-    if (
-        ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
-        && (($_POST['action'] ?? '') === 'submit_score')
-    ) {
-        $hash   = ip_hash($cfg['ip_salt'], $cfg['trusted_proxies']);
-        $ua     = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
-        $result = process_score_submission($pdo, $cfg, $_POST, $hash, $ua);
-
-        if ($result['ok']) {
-            // Post-Redirect-Get: prevents resubmission on refresh. The target
-            // is SCRIPT_NAME (set by the server), never REQUEST_URI (set by
-            // the client), so it cannot be steered to another host.
-            header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?saved=' . (int)$result['rank']);
-            exit;
+            if ($result['ok']) {
+                // Post-Redirect-Get: prevents resubmission on refresh. The target
+                // is SCRIPT_NAME (set by the server), never REQUEST_URI (set by
+                // the client), so it cannot be steered to another host.
+                header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?saved=' . (int)$result['rank']);
+                exit;
+            }
+            $flash = [
+                'type' => 'error',
+                'text' => 'Could not save: ' . $result['error'],
+            ];
         }
-        $flash = [
-            'type' => 'error',
-            'text' => 'Could not save: ' . $result['error'],
-        ];
-    }
 
-    // ----- Initial leaderboard payload (top 20, all characters) -----
-    $initialScores = fetch_top_scores($pdo, null, 20);
-    $totalRuns     = fetch_total_count($pdo);
+        // ----- Initial leaderboard payload (top 20, all characters) -----
+        $initialScores = fetch_top_scores($pdo, null, 20);
+        $totalRuns     = fetch_total_count($pdo);
+        $dbAvailable   = true;   // only once the tables answered
 
-    if (isset($_GET['saved'])) {
-        $savedRank = max(0, (int)$_GET['saved']);
+        if (isset($_GET['saved'])) {
+            $savedRank = max(0, (int)$_GET['saved']);
+        }
+    } catch (Throwable $e) {
+        if (!db_is_missing_table($e)) {
+            error_log('[pixel-run] index: ' . $e->getMessage());
+        }
+        // Page still renders; game falls back to offline mode.
     }
-} catch (Throwable $e) {
-    if (!$needsSetup) {
-        error_log('[pixel-run] index: ' . $e->getMessage());
-    }
-    // Page still renders; game falls back to offline mode.
+}
+if ($isScorePost && !$dbAvailable && $flash === null) {
+    $flash = ['type' => 'error', 'text' => 'The leaderboard is offline, so that score was not saved.'];
 }
 
 /* ----------------------------------------------------------------
@@ -116,7 +116,7 @@ $assetVersion = h((string)$cfg['version']);
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pixel Run — Colour Edition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,19 +135,19 @@ $assetVersion = h((string)$cfg['version']);
     <div class="char-picker" role="tablist" aria-label="Choose character">
       <button class="char-btn active" data-char="dino" type="button">
         <span class="char-emoji">🦖</span>
-        <span class="char-label">DINO</span>
+        <span class="char-label">EENY</span>
       </button>
       <button class="char-btn" data-char="cat" type="button">
         <span class="char-emoji">🐱</span>
-        <span class="char-label">CAT</span>
+        <span class="char-label">MEENY</span>
       </button>
       <button class="char-btn" data-char="penguin" type="button">
         <span class="char-emoji">🐧</span>
-        <span class="char-label">PENGUIN</span>
+        <span class="char-label">MINEY</span>
       </button>
       <button class="char-btn" data-char="robot" type="button">
         <span class="char-emoji">🤖</span>
-        <span class="char-label">ROBOT</span>
+        <span class="char-label">MO</span>
       </button>
     </div>
     <div class="toolbar-right">
@@ -196,6 +196,7 @@ $assetVersion = h((string)$cfg['version']);
           </div>
           <p id="ov-status" class="ov-status"></p>
         </div>
+        <button id="ov-again" class="ov-again" type="button" hidden>PLAY AGAIN</button>
       </div>
     </div>
   </div>
@@ -210,10 +211,10 @@ $assetVersion = h((string)$cfg['version']);
       </header>
       <div class="lb-tabs" role="tablist">
         <button class="lb-tab active" data-filter="all" type="button">ALL</button>
-        <button class="lb-tab" data-filter="dino" type="button">🦖 DINO</button>
-        <button class="lb-tab" data-filter="cat" type="button">🐱 CAT</button>
-        <button class="lb-tab" data-filter="penguin" type="button">🐧 PENGUIN</button>
-        <button class="lb-tab" data-filter="robot" type="button">🤖 ROBOT</button>
+        <button class="lb-tab" data-filter="dino" type="button">🦖 EENY</button>
+        <button class="lb-tab" data-filter="cat" type="button">🐱 MEENY</button>
+        <button class="lb-tab" data-filter="penguin" type="button">🐧 MINEY</button>
+        <button class="lb-tab" data-filter="robot" type="button">🤖 MO</button>
       </div>
       <div class="lb-list" id="lb-list"></div>
       <p class="lb-foot" id="lb-foot"></p>
@@ -232,6 +233,11 @@ $assetVersion = h((string)$cfg['version']);
       <button type="submit">Submit</button>
     </form>
   </noscript>
+
+    <div class="touch-controls" id="touch-controls">
+    <button id="touch-duck" class="touch-btn" type="button" aria-label="Duck (hold)">▼ DUCK</button>
+    <button id="touch-jump" class="touch-btn touch-jump" type="button" aria-label="Jump">▲ JUMP</button>
+  </div>
 
   <div class="controls">
     <span><strong>SPACE</strong> jump</span>

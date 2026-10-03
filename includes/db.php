@@ -26,6 +26,44 @@ function db_connect(array $cfg): PDO
     return new PDO($dsn, $cfg['user'], $cfg['pass'], $opts);
 }
 
+/**
+ * Open the database if there is one, without ever throwing.
+ *
+ * The game works without a database, so "no database" is an expected state,
+ * not an error. $reason says why: 'unconfigured' (nobody has set one up;
+ * not logged) or 'unreachable' (configured but failing; logged).
+ */
+function db_open(array $cfg, ?string &$reason = null): ?PDO
+{
+    $reason = null;
+    if (empty($cfg['configured'])) {
+        $reason = 'unconfigured';
+        return null;
+    }
+    try {
+        return db_connect($cfg['db']);
+    } catch (Throwable $e) {
+        error_log('[pixel-run] database unreachable: ' . $e->getMessage());
+        $reason = 'unreachable';
+        return null;
+    }
+}
+
+/** MySQL error 1146: connected, but the tables have not been created yet. */
+function db_is_missing_table(Throwable $e): bool
+{
+    return $e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1146;
+}
+
+/**
+ * 503 reply for "the leaderboard is not available right now". The game
+ * treats any non-200 from the API as offline and carries on locally.
+ */
+function send_unavailable(string $reason, array $extra = []): void
+{
+    send_json($extra + ['error' => 'database_unavailable', 'offline' => true, 'reason' => $reason], 503);
+}
+
 function send_json($payload, int $status = 200): void
 {
     if (!headers_sent()) {

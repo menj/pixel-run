@@ -236,13 +236,14 @@ function installer_is_installed(array $cfg): bool
 
 /**
  * True on a fresh upload that nobody has configured: no generated settings
- * file and the placeholder password still in config.php. index.php uses this
- * to send first-time visitors to the installer.
+ * file and the placeholder password still in config.php.
  */
 function installer_needed(array $cfg): bool
 {
-    return !is_file(PIXEL_RUN_LOCAL_CONFIG)
-        && ($cfg['db']['pass'] ?? '') === PIXEL_RUN_PLACEHOLDER_PASS;
+    return isset($cfg['configured'])
+        ? !$cfg['configured']
+        : (!is_file(PIXEL_RUN_LOCAL_CONFIG)
+            && ($cfg['db']['pass'] ?? '') === PIXEL_RUN_PLACEHOLDER_PASS);
 }
 
 /* ----------------------------------------------------------------
