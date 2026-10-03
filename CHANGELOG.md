@@ -7,6 +7,10 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed (graphics)
+- Sharper characters and obstacles: every sprite is refined at load with
+  Scale2x (double detail, smoother edges), a light-and-shade pass for volume,
+  and a thinner outline. Sprite sizes, hitboxes and ground contact are
+  unchanged, and the designs are the same, so no sprite grid had to be redrawn.
 - Sharper rendering: the canvas now renders at the screen's real pixel
   resolution (up to 3x, capped at 2880 px wide) instead of a fixed 960x320
   that the browser stretched. Sprites are rebuilt at that scale with cell edges

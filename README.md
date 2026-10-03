@@ -207,10 +207,14 @@ gets 400 even with the database down) and then records; the form fallback
 runs both through `process_score_submission()`.
 
 **Sprites as data.** `assets/js/sprites.js` describes every frame as a
-character grid with a palette. `game.js` adds a one-cell outline, renders
-each frame once to an offscreen canvas at 2x, and blits from there. To
-change a sprite, edit the grid; frame sizes must stay as documented in
-the file because the hitboxes depend on them.
+character grid with a palette. At load, each frame is refined once: Scale2x
+doubles the resolution and rounds off staircase edges, a light-and-shade
+pass adds volume (lighter on top edges, darker underneath, eyes and teeth
+untouched), and a thin outline is added. Padding restores the original
+frame size, so hitboxes are unaffected. `game.js` then renders each frame
+once to an offscreen canvas at the screen's real pixel density and blits
+from there. To change a sprite, edit the grid; frame sizes must stay as
+documented in the file because the hitboxes depend on them.
 
 **Fixed timestep.** Game logic runs at exactly 60 updates per second on
 any display; rendering runs at the display's rate. Speed and score are
