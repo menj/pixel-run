@@ -509,6 +509,7 @@
     display: block;
     width: 100%;
     height: auto;
+    aspect-ratio: 960 / 320;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
