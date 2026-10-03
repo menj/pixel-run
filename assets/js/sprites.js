@@ -691,8 +691,47 @@
     set.palette = sp.palette;
   });
 
+  /* ---------- faces: where the reactions are drawn ----------
+     Coordinates are in final sprite units from the sprite's top-left. For each
+     character and pose (stand covers the run frames too, since only the legs
+     differ):
+       eyes   centres of the eye(s) to replace
+       patch  rectangle that hides the baked-in eye (x, y, w, h)
+       fill   a cell whose colour matches the patch surroundings
+       mouth  where a tongue (or sparks) comes out
+       head   top of the head, where stars, sweat and Z's appear
+     Eyes are drawn as a white socket (creatures) or glowing marks on the visor
+     (the robot, which has two). */
+  var FACES = {
+    dino: {
+      stand: { eyes: [[31.5, 10.5]], patch: [28, 7, 9, 7],  fill: [27, 10], mouth: [38.5, 17],  head: [36, 4] },
+      duck:  { eyes: [[49.5, 8.5]],  patch: [46, 5, 9, 7],  fill: [45, 8],  mouth: [56.5, 15],  head: [52, 3] },
+    },
+    cat: {
+      stand: { eyes: [[37.5, 10.5]], patch: [34, 7, 8, 7],  fill: [33, 10], mouth: [38.5, 16.5], head: [33, 3] },
+      duck:  { eyes: [[51.5, 8.5]],  patch: [48, 5, 8, 7],  fill: [47, 8],  mouth: [55.5, 15],   head: [50, 3] },
+    },
+    penguin: {
+      stand: { eyes: [[28, 10.5]],   patch: [24, 7, 9, 7],  fill: [23, 10], mouth: [38, 15.5],   head: [30, 3] },
+      duck:  { eyes: [[48, 8.5]],    patch: [44, 5, 9, 7],  fill: [43, 8],  mouth: [58, 13.5],   head: [48, 3] },
+    },
+    robot: {
+      stand: { eyes: [[21.5, 12.5], [30.5, 12.5]], patch: [16, 11, 20, 4], fill: [20, 13], mouth: [26, 16], head: [25, 2] },
+      duck:  { eyes: [[42.5, 8.5], [55.5, 8.5]],   patch: [36, 7, 24, 4],  fill: [40, 9],  mouth: [48, 12], head: [47, 2] },
+    },
+  };
+  // Turn each `fill` cell into a colour so the patch blends with the sprite.
+  Object.keys(FACES).forEach(function (id) {
+    Object.keys(FACES[id]).forEach(function (pose) {
+      var f = FACES[id][pose];
+      var frame = SETS[id].frames[pose === 'duck' ? 'duckA' : 'stand'];
+      var ch = frame[f.fill[1]][f.fill[0]];
+      f.fillColor = SETS[id].palette[ch] || '#888888';
+    });
+  });
+
   // The frames are final, so the loader's outline step becomes a no-op.
-  var api = { SCALE: 1, SETS: SETS, outline: function (rows) { return rows; } };
+  var api = { SCALE: 1, SETS: SETS, FACES: FACES, outline: function (rows) { return rows; } };
   if (typeof window !== 'undefined') window.PixelRunSprites = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

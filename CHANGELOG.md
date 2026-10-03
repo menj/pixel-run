@@ -6,6 +6,20 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (reactions)
+- Characters now react, humorously. Crashing into anything knocks the
+  character back, topples it onto its back and bounces it once, with a comic
+  impact burst, X-eyes, a lolling tongue (sparks and short-circuit X-eyes for
+  Moe the bot), dizzy stars and a joke ("BONK!", "MEOWCH!", "NOOT NOOT",
+  "ERROR 404", and more, different per character). The game-over card now
+  appears after about a second so the gag can be seen.
+- Other moments get their own reactions: a close call gives wide eyes, a sweat
+  drop and a "PHEW!"; a bomb pickup gives a shocked face and "KABOOM!"; a shield
+  gives a grin; each 100 points a cheer; and on the title screen the character
+  blinks, then dozes off with floating Z's. The title screen is no longer
+  dimmed and blurred, so this is visible.
+- Names are spelled Eeny, Meeny, Miny and Moe.
+
 ### Changed (graphics)
 - Sharper characters and obstacles: every sprite is refined at load with
   Scale2x (double detail, smoother edges), a light-and-shade pass for volume,
@@ -43,7 +57,7 @@ project uses [Semantic Versioning](https://semver.org/).
 ### Added (stories)
 - Every character has a four-chapter story, opened with the 📖 STORY button.
   Chapters unlock as the best score rises (Eeny and Meeny at 0, 100, 300 and
-  600; Miney from 300; Mo from 600), a dot marks unread chapters, and the
+  600; Miny from 300; Moe from 600), a dot marks unread chapters, and the
   game-over card announces a newly opened chapter. The text lives in
   `assets/js/stories.js`, separate from the game code, so it is easy to edit
   or translate.
@@ -53,8 +67,8 @@ project uses [Semantic Versioning](https://semver.org/).
   press just before landing still jumps), landing squash and jump stretch,
   and screen shake on a crash.
 - Character traits: Eeny (dino) is balanced, Meeny (cat) jumps 10% higher,
-  Miney (penguin) glides while jump is held, Mo (bot) starts with a shield.
-  Miney unlocks at a best score of 300 and Mo at 600 (the silver and gold
+  Miny (penguin) glides while jump is held, Moe (bot) starts with a shield.
+  Miny unlocks at a best score of 300 and Moe at 600 (the silver and gold
   medal marks), tracked on the device.
 - Daily challenge: a DAILY button plays one seeded course per UTC day, the
   same for everyone, with traits off. It has its own TODAY leaderboard tab
@@ -64,7 +78,7 @@ project uses [Semantic Versioning](https://semver.org/).
   leaderboard keeps working and daily scores report that an update is needed.
 
 ### Changed
-- Characters are named Eeny (dino), Meeny (cat), Miney (penguin) and Mo (bot)
+- Characters are named Eeny (dino), Meeny (cat), Miny (penguin) and Moe (bot)
   in in-game text (tips, unlock messages). Picker and leaderboard labels stay
   DINO, CAT, PENGUIN and BOT. Stored ids are unchanged.
 - `index.php` and the API degrade gracefully without a database: the API answers

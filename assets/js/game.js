@@ -242,6 +242,10 @@ const game = {
   flashCD: 0,         // gold milestone flash
   hitFlash: 0,        // white flash on collision
   scroll: 0,          // distance travelled, drives the parallax backdrop
+  faceKind: '',       // transient reaction face: 'wide' | 'happy'
+  faceT: 0,           // ticks left on that face
+  nearCD: 0,          // cooldown between near-miss reactions
+  idleT: 0,           // ticks spent on the title screen (blinks, then dozes off)
   shake: 0,           // screen-shake ticks left after a crash
   jumpBuf: 0,         // ticks a too-early jump press stays queued
   god: false,         // admin cheat: cannot die (admin sessions only)
@@ -284,8 +288,8 @@ function utcDate() { return new Date().toISOString().slice(0, 10); }
 const CHARACTERS = {
   dino:    { name: 'Eeny',   blurb: 'Balanced',             unlock: 0 },
   cat:     { name: 'Meeny',  blurb: 'Jumps 10% higher',     unlock: 0,   jump: 1.1 },
-  penguin: { name: 'Miney',  blurb: 'Hold jump to glide',   unlock: 300, glide: true },
-  robot:   { name: 'Mo',     blurb: 'Starts with a shield', unlock: 600, startShield: 180 },
+  penguin: { name: 'Miny',  blurb: 'Hold jump to glide',   unlock: 300, glide: true },
+  robot:   { name: 'Moe',     blurb: 'Starts with a shield', unlock: 600, startShield: 180 },
 };
 function trait() {
   if (game.mode === 'daily') return CHARACTERS.dino;
@@ -317,6 +321,7 @@ const dino = {
   jumping: false,
   ducking: false,
   hurtFlash: 0,
+  fallT: -1,       // ticks since the knock-over began (-1 = standing)
 };
 
 /* ---------- entities ---------- */
@@ -461,6 +466,225 @@ function blit(img, x, y) {
   ctx.drawImage(img, Math.round(x * VIEW) / VIEW, Math.round(y * VIEW) / VIEW, img.width / VIEW, img.height / VIEW);
 }
 
+/* ---------- reactions: faces, jokes and the knock-over ---------- */
+// Characters react to what happens to them. The sprite's baked-in eye is
+// covered with a patch and replaced by an expression drawn on top (see FACES
+// in sprites.js), and short jokes float up from the head. Nothing here
+// affects gameplay.
+const FACES = SPRITE_DATA.FACES;
+const quips = [];     // floating jokes
+const impacts = [];   // comic impact starbursts
+
+const QUIPS = {
+  hit: {
+    dino:    ['OOF!', 'RAWR?!', 'MY SNOUT!', 'BONK!', 'WORTH IT'],
+    cat:     ['MEOWCH!', 'HISSS!', 'NOT THE FACE', 'FUR REAL?', 'ON PURPOSE!'],
+    penguin: ['HONK!', 'NOOT NOOT', 'BRRR-ONK!', 'I SLIPPED', 'WRONG TURN!'],
+    robot:   ['ERROR 404', 'BZZT!', 'OOPS.EXE', 'SYSTEM FAIL', 'REBOOTING...'],
+  },
+  near:      ['PHEW!', 'WHEW!', 'TOO CLOSE!', 'NOT TODAY!', 'CLOSE ONE!', 'SWEAT!'],
+  nearRobot: ['RECALCULATING', 'THAT WAS 3MM', 'WHEW.EXE'],
+  bomb:      ['KABOOM!', 'BOOM!', 'MIC DROP', 'NICE.', 'BYE CACTI!'],
+  shield:    ['SHINY!', 'BUBBLE TIME', 'BRING IT', 'UNTOUCHABLE'],
+  milestone: ['LOOK AT ME GO', 'NICE!', 'ZOOM!', 'UNSTOPPABLE'],
+};
+function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+function quip(text, x, y, color, size) {
+  quips.push({ text, x, y, vy: -0.55, life: 80, max: 80, color: color || '#FFFFFF', size: size || 10 });
+}
+function setFace(kind, ticks) {
+  game.faceKind = kind;
+  game.faceT = ticks;
+}
+function headPos(pose) {
+  const f = FACES[game.character] || FACES.dino;
+  const spec = f[pose || 'stand'];
+  return { x: dino.x + spec.head[0], y: dino.y + spec.head[1] };
+}
+
+function reactHit() {
+  dino.fallT = 0;
+  impacts.push({ x: dino.x + 47, y: dino.y + 16, t: 0 });
+  const h = headPos();
+  quip(pick(QUIPS.hit[game.character] || QUIPS.hit.dino), h.x - 4, h.y - 12, '#FFFFFF', 13);
+}
+function reactNearMiss() {
+  setFace('wide', 45);
+  const list = game.character === 'robot' ? QUIPS.nearRobot : QUIPS.near;
+  const h = headPos();
+  quip(pick(list), h.x - 2, h.y - 12, '#7FD6FF', 11);
+}
+
+// Per-tick upkeep for faces, jokes and the knock-over; runs in every state.
+function updateReactions() {
+  if (game.faceT > 0) game.faceT--;
+  if (game.nearCD > 0) game.nearCD--;
+  if (dino.fallT >= 0 && dino.fallT < 600) dino.fallT++;
+  if (game.state === 'idle') {
+    game.idleT++;
+    // dozing: a little Z drifts up every second or so
+    if (game.idleT > 720 && game.idleT % 70 === 0) {
+      const h = headPos();
+      quip('Z', h.x + 4, h.y, '#BFD7FF', 9 + Math.floor(Math.random() * 4));
+    }
+  } else {
+    game.idleT = 0;
+  }
+  for (let i = quips.length - 1; i >= 0; i--) {
+    const q = quips[i];
+    q.y += q.vy;
+    q.vy *= 0.985;
+    if (--q.life <= 0) quips.splice(i, 1);
+  }
+  for (let i = impacts.length - 1; i >= 0; i--) {
+    if (++impacts[i].t > 14) impacts.splice(i, 1);
+  }
+}
+
+// Which expression, if any, the character wears right now.
+function currentFace() {
+  if (game.state === 'over' && dino.fallT >= 0) return 'x';
+  if (game.faceT > 0) return game.faceKind;
+  if (game.state === 'idle') {
+    if (game.idleT > 720) return 'sleep';
+    if (game.idleT % 170 < 6) return 'closed';
+  }
+  return '';
+}
+
+const FACE_INK = '#1B1030';
+function plusStar(x, y, color) {
+  px(x - 1, y, 3, 1, color);
+  px(x, y - 1, 1, 3, color);
+  px(x, y, 1, 1, '#FFFFFF');
+}
+// One expression centred on (cx, cy); the robot shows glowing marks on its visor.
+function drawEye(set, cx, cy, kind) {
+  const x0 = Math.floor(cx - 3), y0 = Math.floor(cy - 3);
+  if (set === 'robot') {
+    const a = Math.floor(cx - 2), b = Math.floor(cy - 2), c = '#FF477E';
+    if (kind === 'x') {
+      for (const [dx, dy] of [[0, 0], [3, 0], [1, 1], [2, 1], [1, 2], [2, 2], [0, 3], [3, 3]]) px(a + dx, b + dy, 1, 1, c);
+    } else if (kind === 'wide') {
+      px(a, b + 1, 4, 2, '#FFFFFF'); px(a + 1, b, 2, 4, '#FFFFFF'); px(a + 1, b + 1, 2, 2, FACE_INK);
+    } else if (kind === 'happy') {
+      for (const [dx, dy] of [[0, 3], [1, 2], [2, 1], [3, 2], [4, 3]]) px(a + dx, b + dy - 1, 1, 1, c);
+    } else {
+      px(a, b + 1, 5, 1, c);
+    }
+    return;
+  }
+  if (kind === 'x' || kind === 'wide') {
+    // white socket, 7 x 7 with clipped corners
+    px(x0 + 2, y0, 3, 7, '#FFFFFF'); px(x0 + 1, y0 + 1, 5, 5, '#FFFFFF'); px(x0, y0 + 2, 7, 3, '#FFFFFF');
+    if (kind === 'x') {
+      for (const [dx, dy] of [[0, 0], [4, 0], [1, 1], [3, 1], [2, 2], [1, 3], [3, 3], [0, 4], [4, 4]]) px(x0 + 1 + dx, y0 + 1 + dy, 1, 1, FACE_INK);
+    } else {
+      px(x0 + 3, y0 + 2, 3, 3, FACE_INK);   // pupil, looking ahead
+    }
+  } else if (kind === 'happy') {
+    for (const [dx, dy] of [[0, 3], [1, 2], [2, 1], [3, 2], [4, 3]]) px(x0 + 1 + dx, y0 + dy, 1, 1, FACE_INK);
+  } else {
+    px(x0 + 1, y0 + 3, 5, 1, FACE_INK);     // closed: a sleepy line
+  }
+}
+
+function drawFace(set, pose, ox, oy, kind) {
+  const spec = (FACES[set] || FACES.dino)[pose];
+  const pa = spec.patch;
+  px(ox + pa[0], oy + pa[1], pa[2], pa[3], spec.fillColor);
+  for (const e of spec.eyes) drawEye(set, ox + e[0], oy + e[1], kind);
+  const hx = ox + spec.head[0], hy = oy + spec.head[1];
+
+  if (kind === 'x') {
+    if (set === 'robot') {
+      // short-circuit: flickering sparks
+      if (game.tick % 8 < 5) {
+        const bx = ox + spec.mouth[0] - 2 + ((game.tick >> 3) % 2) * 5;
+        px(bx, hy + 1, 1, 2, '#FFD700'); px(bx + 1, hy + 3, 1, 2, '#FFD700'); px(bx, hy + 5, 1, 2, '#FFFFFF');
+      }
+    } else {
+      // tongue lolling out, wobbling a little
+      const wob = Math.round(Math.sin(game.tick * 0.25));
+      const tx = Math.floor(ox + spec.mouth[0]) - 1 + wob, ty = Math.floor(oy + spec.mouth[1]);
+      px(tx, ty, 3, 5, '#FF6F91'); px(tx + 1, ty + 5, 1, 1, '#FF6F91');
+      px(tx + 1, ty + 1, 1, 3, '#D94A6B');
+    }
+    // dizzy stars circling the head
+    for (let i = 0; i < 3; i++) {
+      const ang = game.tick * 0.12 + i * 2.094;
+      plusStar(Math.round(hx + Math.cos(ang) * 11), Math.round(hy - 3 + Math.sin(ang) * 3.5), '#FFD700');
+    }
+  } else if (kind === 'wide') {
+    const dropY = hy + 2 + (game.tick % 22) * 0.35;                 // sweat drop sliding down
+    px(hx - 9, dropY, 2, 2, '#7FD6FF'); px(hx - 9, dropY - 1, 1, 1, '#7FD6FF');
+  } else if (kind === 'happy') {
+    if (game.tick % 12 < 8) { plusStar(Math.round(hx - 9), Math.round(hy + 2), '#FFE680'); plusStar(Math.round(hx + 9), Math.round(hy - 2), '#FFE680'); }
+  }
+}
+
+// The knock-over: hop backwards, topple onto the back, bounce once.
+function drawFallen(frames, set, kind) {
+  const t = dino.fallT;
+  const k = Math.min(1, t / 26);
+  const settle = t > 26 ? Math.sin((t - 26) * 0.55) * Math.exp(-(t - 26) / 9) * 0.18 : 0;
+  const ang = -(Math.PI / 2) * k + settle;
+  const hop = Math.sin(Math.min(1, t / 18) * Math.PI) * 16;
+  const air = (GROUND_Y - STAND_H - dino.y) * (1 - Math.min(1, t / 12));   // hit mid-jump: come down first
+  const lift = Math.abs(Math.sin(ang)) * 24;                               // keep the body on the ground
+  ctx.save();
+  ctx.translate(dino.x - 16 * k + 24, GROUND_Y - lift - hop - air);
+  ctx.rotate(ang);
+  ctx.imageSmoothingEnabled = true;                                        // smooth the rotated edges
+  const img = frames.stand;
+  ctx.drawImage(img, -24, -STAND_H, img.width / VIEW, img.height / VIEW);
+  if (kind) {
+    ctx.translate(-24, -STAND_H);
+    drawFace(set, 'stand', 0, 0, kind);
+  }
+  ctx.restore();
+}
+
+function drawQuips() {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  for (const q of quips) {
+    const age = q.max - q.life;
+    const pop = age < 8 ? 1 + 0.35 * (1 - age / 8) : 1;
+    ctx.globalAlpha = Math.min(1, q.life / 22);
+    ctx.font = `${Math.round(q.size * pop)}px 'Press Start 2P', 'Courier New', monospace`;
+    // keep the whole joke on screen, whatever its length
+    const half = ctx.measureText(q.text).width / 2 + 6;
+    const x = Math.max(half, Math.min(W - half, q.x));
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#1B1030';
+    ctx.strokeText(q.text, x, q.y);
+    ctx.fillStyle = q.color;
+    ctx.fillText(q.text, x, q.y);
+  }
+  ctx.globalAlpha = 1;
+}
+function drawImpacts() {
+  for (const m of impacts) {
+    const r = 5 + m.t * 1.7, a = 1 - m.t / 14;
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const ang = (i / 16) * Math.PI * 2, rad = i % 2 ? r * 0.45 : r;
+      ctx.lineTo(m.x + Math.cos(ang) * rad, m.y + Math.sin(ang) * rad);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#FFE066';
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#FF7A3C';
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 // Draw a sprite scaled around its feet (bottom centre) for squash and stretch.
 function blitScaled(img, x, y, sx, sy) {
   if (sx === 1 && sy === 1) { blit(img, x, y); return; }
@@ -477,9 +701,16 @@ function drawPlayer() {
   const flash = dino.hurtFlash > 0 && (dino.hurtFlash % 6 < 3);
   const frames = flash ? SPR.flash[set] : SPR.normal[set];
   const phaseA = Math.floor(game.tick / 5) % 2 === 0;
+  const kind = flash ? '' : currentFace();     // no expression while the white hurt-blink shows
 
+  if (game.state === 'over' && dino.fallT >= 0) {
+    drawFallen(frames, set, kind);
+    return;
+  }
   if (dino.ducking && !dino.jumping) {
-    blit(phaseA ? frames.duckA : frames.duckB, dino.x, GROUND_Y - DUCK_H);
+    const y = GROUND_Y - DUCK_H;
+    blit(phaseA ? frames.duckA : frames.duckB, dino.x, y);
+    if (kind) drawFace(set, 'duck', Math.round(dino.x * VIEW) / VIEW, Math.round(y * VIEW) / VIEW, kind);
     return;
   }
   let f;
@@ -487,11 +718,12 @@ function drawPlayer() {
   else f = phaseA ? frames.runA : frames.runB;
   const bob = game.state === 'idle' ? Math.round(Math.sin(game.tick / 12) * 3) : 0;
   let sx = 1, sy = 1;
-  if (game.state === 'running') {
+  if (game.state === 'running' && !kind) {
     if (dino.squash > 0) { const t = dino.squash / 6; sx = 1 + 0.18 * t; sy = 1 - 0.18 * t; }
     else if (dino.jumping && dino.vy < -6) { sx = 0.92; sy = 1.08; }
   }
   blitScaled(f, dino.x, dino.y + bob, sx, sy);
+  if (kind) drawFace(set, 'stand', Math.round(dino.x * VIEW) / VIEW, Math.round((dino.y + bob) * VIEW) / VIEW, kind);
 }
 
 /* ---------- obstacles: cactus ---------- */
@@ -841,12 +1073,16 @@ function activateBomb() {
   game.score += count * 10; // bonus per nuked obstacle
   game.bombFlash = 22;
   SFX.bomb();
+  setFace('wide', 50);
+  quip(pick(QUIPS.bomb), headPos().x, headPos().y - 12, '#FF477E', 13);
 }
 
 function activateShield() {
   game.shieldT = game.shieldMax;
   spawnSparkle(dino.x + 22, dino.y + 24);
   SFX.shield();
+  setFace('happy', 70);
+  quip(pick(QUIPS.shield), headPos().x, headPos().y - 12, '#48CAE4', 11);
 }
 
 function updateParticles() {
@@ -1089,6 +1325,10 @@ function beginRun() {
   game.shake = 0;
   game.cheated = game.god;
   dino.squash = 0;
+  dino.fallT = -1;
+  game.faceT = 0;
+  quips.length = 0;
+  impacts.length = 0;
   game.shieldT = trait().startShield || 0;
 }
 
@@ -1137,6 +1377,7 @@ function gameOver() {
     refreshStoryBadge();
   }
   game.shake = 14;
+  reactHit();
   spawnExplosion(dino.x + 24, dino.y + 24);
   dino.hurtFlash = 30;
   game.hitFlash = 10;
@@ -1178,7 +1419,7 @@ function gameOver() {
 
   // Brief hit-stop so the collision registers before the panel appears.
   clearTimeout(game.overTimer);
-  game.overTimer = setTimeout(() => overlay.classList.remove('hidden'), 450);
+  game.overTimer = setTimeout(() => overlay.classList.remove('hidden'), 1100);
 }
 
 function restart() {
@@ -1639,6 +1880,7 @@ function update() {
   if (game.bombFlash > 0) game.bombFlash--;
   if (game.hitFlash > 0) game.hitFlash--;
   if (game.shake > 0) game.shake--;
+  updateReactions();
 
   if (game.state !== 'running') {
     // still animate clouds + stars softly when idle
@@ -1768,6 +2010,18 @@ function update() {
         gameOver();
         break;
       }
+    } else if (game.nearCD <= 0 && !o.near && game.shieldT <= 0 && !game.god) {
+      // close call: overlapping horizontally with a few units of clearance
+      const ob = obsBox(o);
+      if (db.x < ob.x + ob.w && db.x + db.w > ob.x) {
+        const gap = db.y + db.h <= ob.y ? ob.y - (db.y + db.h)
+                  : ob.y + ob.h <= db.y ? db.y - (ob.y + ob.h) : -1;
+        if (gap >= 0 && gap <= 7) {
+          o.near = true;
+          game.nearCD = 120;
+          reactNearMiss();
+        }
+      }
     }
   }
 
@@ -1795,6 +2049,8 @@ function update() {
     game.nextMilestone += 100;
     game.flashCD = 30;
     SFX.milestone();
+    setFace('happy', 60);
+    quip(pick(QUIPS.milestone), headPos().x, headPos().y - 12, '#FFD700', 11);
   }
 
   if (dino.hurtFlash > 0) dino.hurtFlash--;
@@ -1873,6 +2129,8 @@ function render() {
   }
 
   drawParticles();
+  drawImpacts();
+  drawQuips();
   ctx.restore();
 
   // bomb flash overlay
