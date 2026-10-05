@@ -20,7 +20,15 @@ header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 
-session_set_cookie_params(['httponly' => true, 'samesite' => 'Strict']);
+// Own cookie name and path, so it never clashes with other apps on the same domain.
+$installDir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
+session_name('pixelrun_install');
+session_set_cookie_params([
+    'path'     => $installDir . '/',
+    'httponly' => true,
+    'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'samesite' => 'Strict',
+]);
 session_start();
 if (empty($_SESSION['pr_install_token'])) {
     $_SESSION['pr_install_token'] = bin2hex(random_bytes(16));

@@ -40,6 +40,7 @@ const MUTE_KEY = 'pixel_run_muted';
 const HI_KEY   = 'pixel_run_hi';
 const DAILY_KEY = 'pixel_run_daily_';   // + UTC date
 const NAME_KEY = 'pixel_run_name';
+const ARCADE_NAME_KEY = 'arcade_name'; // player name shared by every arcade game
 
 function storageGet(key) {
   try { return localStorage.getItem(key); } catch (_) { return null; }
@@ -1400,7 +1401,7 @@ function gameOver() {
     ovStatus.classList.remove('error');
     ovSend.disabled = false;
     ovSend.textContent = 'SUBMIT';
-    const savedName = storageGet(NAME_KEY);
+    const savedName = storageGet(ARCADE_NAME_KEY) || storageGet(NAME_KEY);
     if (savedName && !ovName.value) ovName.value = savedName;
   } else {
     ovSubmit.hidden = true;
@@ -1504,6 +1505,7 @@ async function submitScore() {
 
     if (res.ok && data.ok) {
       storageSet(NAME_KEY, name);
+      storageSet(ARCADE_NAME_KEY, name);
       INITIAL_SCORES = []; // the ALL tab must refetch to include this run
       ovStatus.classList.remove('error');
       ovStatus.innerHTML = `Saved! Rank <strong class="accent-gold">#${data.rank}</strong> of ${data.total}`;
@@ -1634,6 +1636,12 @@ if (/^(\/|\.{1,2}\/|https?:\/\/)/.test(SERVER.arcadeUrl || '')) {
     link.textContent = '‹ ARCADE';
     hdr.insertBefore(link, hdr.firstChild);
   }
+  // Low-key "More games" link on the game-over card, right after a run.
+  const more = document.createElement('a');
+  more.className = 'ov-more';
+  more.href = SERVER.arcadeUrl;
+  more.textContent = 'More games ›';
+  ovAgain.insertAdjacentElement('afterend', more);
 }
 
 /* ---------- shared arcade stats ---------- */
