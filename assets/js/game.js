@@ -1243,7 +1243,7 @@ function unlockAudio() {
 // Taps on the dimmed overlay: start from the title screen, or retry from
 // game over when there is no name form to protect from stray taps.
 overlay.addEventListener('pointerdown', (e) => {
-  if (e.target.closest('#ov-submit, #ov-again')) return;
+  if (e.target.closest('#ov-submit, #ov-again, .ov-more')) return;
   if (game.state === 'idle') jumpPress();
   else if (game.state === 'over' && ovSubmit.hidden) restart();
 });
