@@ -343,8 +343,9 @@ The game keeps these keys in `localStorage`, all optional:
 successfully submitted score), `pixel_run_story_seen`,
 `pixel_run_daily_<date>` (the daily challenge result), `pixel_run_glitch`
 (the hidden level's own record) and `pixel_run_platinum_seen` (a one-time
-hint flag). A finished run also updates the shared `arcade.stats` record
-when the game runs inside the arcade hub. Nothing else is stored
+hint flag). Every finished run that is not an admin-cheat run and not the hidden
+level also updates the shared `arcade.stats` record (standalone and
+offline play included), which the arcade hub can read. Nothing else is stored
 client-side.
 
 ## Configuration reference (`includes/config.php`)
