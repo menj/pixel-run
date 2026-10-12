@@ -1292,7 +1292,7 @@ function spawnSparkle(x, y) {
 function award(o) {
   const pts = o.type === 'bird' ? 15 : 10;
   game.score += pts;
-  quip('+' + pts, o.x + o.w / 2, o.y - 4, '#FFD700', 9);
+  quip('+' + pts, o.x + o.w / 2, o.y - 4, '#FFD700', 14);
 }
 
 function activateBomb() {
