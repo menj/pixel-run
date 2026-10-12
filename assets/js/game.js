@@ -259,6 +259,9 @@ const game = {
   giantT: 0,          // mystery gift: giant mode, stomps what it meets
   taxiT: 0,           // mystery gift: a bird carries the dino over everything
   sneezeT: 0,         // mystery gift: wind-up, then an obstacle-clearing sneeze
+  paused: false,      // frozen by the player (P, the pause button, or the tab being hidden)
+  resumeT: 0,         // ticks left in the 3-2-1 after resuming
+  pausedAt: 0,        // ms timestamp the pause began, so run time excludes it
   chatCD: 0,          // spacing between lines said by obstacles
   mysteryLast: '',    // last surprise, so it never repeats back to back
   bombFlash: 0,       // screen flash from bomb pickup
@@ -1592,10 +1595,10 @@ function jump() {
 }
 // Input layers call these so we know whether the button is still held:
 // holding climbs higher, and a gliding character glides while held.
-function jumpPress() { dino.jumpHeld = true; jump(); }
+function jumpPress() { if (game.paused || game.resumeT > 0) return; dino.jumpHeld = true; jump(); }
 function jumpRelease() { dino.jumpHeld = false; }
 function duckOn() {
-  if (game.state !== 'running') return;
+  if (game.state !== 'running' || game.paused || game.resumeT > 0) return;
   if (!dino.jumping && !dino.ducking) {
     dino.ducking = true;
     SFX.duck();
@@ -1614,6 +1617,41 @@ function closeModals() {
     if (storyBtn) storyBtn.focus();
   }
 }
+/* ---------- pause ---------- */
+const pauseBtn = document.getElementById('pause-btn');
+const pauseScreen = document.getElementById('pause-screen');
+const pauseResumeBtn = document.getElementById('pause-resume');
+const pauseRestartBtn = document.getElementById('pause-restart');
+
+function pauseGame() {
+  if (game.state !== 'running' || game.paused) return;
+  const midCountdown = game.resumeT > 0;
+  game.resumeT = 0;
+  if (!midCountdown) game.pausedAt = Date.now();
+  game.paused = true;
+  jumpRelease();
+  duckOff();
+  pauseScreen.hidden = false;
+  pauseResumeBtn.focus({ preventScroll: true });
+}
+function resumeGame() {
+  if (!game.paused) return;
+  game.paused = false;
+  pauseScreen.hidden = true;
+  game.resumeT = 180;   // 3-2-1 so the player is not dropped straight back into a cactus
+}
+function togglePause() { if (game.paused) resumeGame(); else pauseGame(); }
+// The pause button only shows while a run is actually going.
+function syncPauseUi() {
+  const show = game.state === 'running' && !game.paused && game.resumeT === 0;
+  if (pauseBtn.hidden === show) pauseBtn.hidden = !show;
+}
+pauseBtn.addEventListener('click', () => { pauseGame(); pauseBtn.blur(); });
+pauseResumeBtn.addEventListener('click', resumeGame);
+pauseRestartBtn.addEventListener('click', () => restart());
+pauseBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
+
 window.addEventListener('keydown', (e) => {
   // While a panel is open the keyboard belongs to it, not to the game behind.
   if (!storyModal.hidden || !lbModal.hidden) {
@@ -1621,6 +1659,15 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (isTypingTarget(e.target)) return; // Space, R and M must not fire while naming a score
+  if (game.state === 'running' && e.code === 'KeyP') { e.preventDefault(); if (!e.repeat) togglePause(); return; }
+  if (game.paused || game.resumeT > 0) {
+    // frozen: only resume, restart and mute are live
+    if (e.code === 'Escape') { if (game.paused) resumeGame(); }
+    else if (e.code === 'KeyR') restart();
+    else if (e.code === 'KeyM') { e.preventDefault(); toggleMuted(); }
+    else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown') e.preventDefault();
+    return;
+  }
   if (e.code === 'Escape') leaveGlitchZone();   // works mid-run too
   if (game.state !== 'running') {
     const letter = /^Key([A-Z])$/.exec(e.code);
@@ -1971,6 +2018,9 @@ function drawGlitchFx() {
 
 function restart() {
   clearTimeout(game.overTimer);
+  game.paused = false;
+  game.resumeT = 0;
+  pauseScreen.hidden = true;
   ovResult.hidden = true;
   ovAgain.hidden = true;
   overlay.classList.remove('is-over');
@@ -2467,6 +2517,11 @@ if (typeof SERVER.savedRank === 'number' && SERVER.savedRank > 0) {
 
 /* ---------- update ---------- */
 function update() {
+  if (game.paused) return;
+  if (game.resumeT > 0) {
+    if (--game.resumeT === 0) game.runStart += Date.now() - game.pausedAt;   // pauses do not count as play time
+    return;
+  }
   game.tick++;
   cycleT++;
   if (game.flashCD > 0) game.flashCD--;
@@ -2864,6 +2919,21 @@ function render() {
 
   if (game.mode === 'secret') drawGlitchFx();
 
+  // 3-2-1 after resuming
+  if (game.resumeT > 0) {
+    ctx.fillStyle = 'rgba(13,2,33,0.35)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = '48px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#1B1030';
+    ctx.strokeText(String(Math.ceil(game.resumeT / 60)), W / 2, H / 2);
+    ctx.fillStyle = '#FFD700';
+    ctx.fillText(String(Math.ceil(game.resumeT / 60)), W / 2, H / 2);
+  }
+
   // score HUD update
   hiEl.textContent = pad(game.mode === 'daily' ? game.dailyBest : game.hi);
   scEl.textContent = pad(game.score);
@@ -2892,6 +2962,7 @@ function loop(now) {
     accumulator -= STEP_MS;
   }
   render();
+  syncPauseUi();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

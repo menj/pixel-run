@@ -1029,3 +1029,71 @@
 .overlay.is-over .ov-more { display: inline-block; }
 .ov-more:hover { color: #fff; }
 .ov-more:focus-visible { outline: 2px solid #FFD700; outline-offset: 2px; }
+
+  /* ---------- pause ---------- */
+  .pause-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 9;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 50%;
+    background: rgba(13,2,33,0.35);
+    color: rgba(255,255,255,0.85);
+    font-size: 11px;
+    letter-spacing: -1px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .pause-btn:hover,
+  .pause-btn:focus-visible { background: rgba(13,2,33,0.65); border-color: var(--accent); outline: none; }
+
+  .pause-screen {
+    position: absolute;
+    inset: 0;
+    z-index: 11;
+    display: grid;
+    place-items: center;
+    background: rgba(13,2,33,0.78);
+    backdrop-filter: blur(3px);
+  }
+  .pause-card { text-align: center; padding: 18px 28px; }
+  .pause-card h2 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(18px, 3vw, 28px);
+    color: #fff;
+    letter-spacing: 4px;
+    margin-bottom: 14px;
+  }
+  .pause-card p { font-size: clamp(18px, 2vw, 22px); color: #f0e6ff; margin-bottom: 16px; }
+  .pause-card .key {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    color: #FFD700;
+    margin: 0 4px;
+  }
+  .pause-actions { display: flex; gap: 10px; justify-content: center; }
+  .pause-action {
+    padding: 10px 18px;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .pause-action.secondary { background: transparent; color: #f0e6ff; border-color: rgba(255,255,255,0.3); }
+  .pause-action:hover,
+  .pause-action:focus-visible { transform: translateY(-1px); filter: brightness(1.12); outline: none; }
+

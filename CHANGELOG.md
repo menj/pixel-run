@@ -26,6 +26,10 @@ project uses [Semantic Versioning](https://semver.org/).
   "+15" (bird) popup: shield smash, bomb, burn, stomp, wither, bird boom and
   sneeze all pay the same. Cacti that only dance in the party stay alive and
   score nothing.
+- **Pause**: press **P** or tap the ⏸ button mid-run. The game freezes, a PAUSED
+  screen offers Resume and Restart, and resuming gives a 3-2-1 countdown.
+  The game also pauses by itself when the tab is hidden. Paused time does not
+  count towards the run's duration.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 
