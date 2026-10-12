@@ -20,7 +20,7 @@ project uses [Semantic Versioning](https://semver.org/).
   same twice running, each with a line from the character and from the
   obstacles: cacti **wither** away, birds **explode**, **lightning** speedster
   mode (invulnerable, leaves a burning trail and sets every cactus it passes through ablaze; the dino ends up dizzy and wheezing), cacti stand up and throw a
-  **party** while ignoring you, **moon jump** low gravity, **giant mode** (stomps cacti flat, ground-shaking footsteps), **bird taxi** (a bird carries you over everything), a delayed **sneeze** that blows every obstacle ahead off the road, or a **jackpot**
+  **party** while ignoring you, **moon jump** low gravity, **giant mode** (stomps cacti flat, ground-shaking footsteps), **Hamilton Taxi** (Hamilton, the bird from Beberd, carries you over everything), a delayed **sneeze** that blows every obstacle ahead off the road, or a **jackpot**
   of +75 points. Characters have their own lines for every gift.
 - Destroying obstacles now always scores, with a floating "+10" (cactus) or
   "+15" (bird) popup: shield smash, bomb, burn, stomp, wither, bird boom and

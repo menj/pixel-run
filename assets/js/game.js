@@ -557,8 +557,8 @@ const QUIPS = {
       penguin: ['EMPEROR MODE', 'GIANT PENGUIN!'], robot: ['SIZE: XXL', 'UPSCALING...'],
     },
     taxi: {
-      dino: ['FREE RIDE!', 'WAIT, A BIRD?!'], cat: ['I HATE THIS', 'TELL NO ONE'],
-      penguin: ['I AM FLYING!', 'I KNEW IT!'], robot: ['FLIGHT MODE: ON', 'AIRBORNE.EXE'],
+      dino: ['HI HAMILTON!', 'FREE RIDE!'], cat: ['DRIVE FASTER, HAMILTON', 'TELL NO ONE'],
+      penguin: ['HAMILTON! FELLOW BIRD!', 'I AM FLYING!'], robot: ['PILOT: HAMILTON', 'AIRBORNE.EXE'],
     },
     sneeze: {
       dino: ['UH OH...', 'DUST...'], cat: ['FUR BALL!', 'ALLERGIC TO MYSELF'],
@@ -571,8 +571,8 @@ const QUIPS = {
   },
   giantEnd:  ['*PSSSHHH*', 'BACK TO SMOL', 'WHO SHRUNK ME?'],
   stomp:     ['SQUISH!', 'FLAT!', 'PANCAKE!', 'OOF'],
-  taxiBird:  ['TAXI!', 'NO REFUNDS', 'MIND THE FEATHERS', 'FIVE STARS PLEASE'],
-  taxiBye:   ["THAT'LL BE 5 COINS", 'MIND THE GAP!', 'WATCH YOUR STEP'],
+  taxiBird:  ['HAMILTON AIRLINES', 'NO REFUNDS', 'MIND THE FEATHERS', 'FIVE STARS PLEASE', 'ALL ABOARD!'],
+  taxiBye:   ["THAT'LL BE 5 COINS", 'MIND THE GAP!', 'TIPS WELCOME', 'RATE ME 5 STARS'],
   // The obstacles have opinions about it too.
   cactusWither: ['*SIGH*', 'TELL MY MOM...', 'IT WAS THE SUN', 'NOT LIKE THIS', 'I NEEDED WATER'],
   cactusBurn:   ['HOT HOT HOT!', 'MY SPINES!', 'I AM SO TOAST', 'FIRE! FIRE!', 'SMELLS LIKE CHAR'],
@@ -1332,7 +1332,7 @@ const MYSTERY_FX = {
   party:  { name: 'CACTUS PARTY', color: '#FF3CAC', start() { game.partyT = 480; } },
   moon:   { name: 'MOON JUMP',    color: '#A0E7FF', start() { game.moonT = 600; } },
   giant:  { name: 'GIANT MODE!', color: '#FF8C00', start() { game.giantT = 420; game.shake = 14; } },
-  taxi:   { name: 'BIRD TAXI',    color: '#FFD23F', start() {
+  taxi:   { name: 'HAMILTON TAXI', color: '#FFD23F', start() {
     game.taxiT = 360;
     dino.jumping = true;
     dino.vy = 0;
@@ -2743,9 +2743,9 @@ function render() {
 
   if (game.god) ctx.globalAlpha = 0.55;
   if (game.taxiT > 0) {
-    // the taxi: a bird under the passenger, flapping hard
-    const flapUp = Math.floor(game.tick / 6) % 2 === 0;
-    blit(flapUp ? SPR.normal.bird.up : SPR.normal.bird.down, dino.x + 6, dino.y + STAND_H - 10);
+    // the taxi: Hamilton, flapping hard under the passenger
+    const ham = SPR.normal.hamilton;
+    blit([ham.up, ham.mid, ham.down, ham.mid][Math.floor(game.tick / 5) % 4], dino.x + 2, dino.y + STAND_H - 1);
   }
   if (game.giantT > 0) {
     const gs = 1 + 0.9 * Math.min(1, (420 - game.giantT) / 20, game.giantT / 20);   // grows in, deflates out
