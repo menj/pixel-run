@@ -85,6 +85,11 @@ const storyModal = document.getElementById('story-modal');
 const storyClose = document.getElementById('story-close');
 const storyBody  = document.getElementById('story-body');
 const storyTabs  = document.querySelectorAll('.story-tab');
+const guideBtn   = document.getElementById('guide-btn');
+const guideModal = document.getElementById('guide-modal');
+const guideClose = document.getElementById('guide-close');
+const guideTabsEl = document.getElementById('guide-tabs');
+const guideBody  = document.getElementById('guide-body');
 const lbList   = document.getElementById('lb-list');
 const lbFoot   = document.getElementById('lb-foot');
 const lbTabs   = document.querySelectorAll('.lb-tab');
@@ -1612,6 +1617,10 @@ function isTypingTarget(el) {
 
 function closeModals() {
   lbModal.hidden = true;
+  if (!guideModal.hidden) {
+    guideModal.hidden = true;
+    if (guideBtn) guideBtn.focus();
+  }
   if (!storyModal.hidden) {
     storyModal.hidden = true;
     if (storyBtn) storyBtn.focus();
@@ -1654,7 +1663,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 
 window.addEventListener('keydown', (e) => {
   // While a panel is open the keyboard belongs to it, not to the game behind.
-  if (!storyModal.hidden || !lbModal.hidden) {
+  if (!storyModal.hidden || !lbModal.hidden || !guideModal.hidden) {
     if (e.code === 'Escape') closeModals();
     return;
   }
@@ -2278,7 +2287,7 @@ function toggleGod() {
 if (IS_ADMIN) {
   let typed = '';
   window.addEventListener('keydown', (e) => {
-    if (e.repeat || isTypingTarget(e.target) || !storyModal.hidden || !lbModal.hidden) return;
+    if (e.repeat || isTypingTarget(e.target) || !storyModal.hidden || !lbModal.hidden || !guideModal.hidden) return;
     if (!/^Key[A-Z]$/.test(e.code)) { typed = ''; return; }
     typed = (typed + e.code.slice(3).toLowerCase()).slice(-5);
     if (typed === 'iddqd') { typed = ''; toggleGod(); }
@@ -2383,6 +2392,73 @@ if (storyBtn) {
   storyModal.addEventListener('click', (e) => { if (e.target === storyModal) closeModals(); });
   storyTabs.forEach((t) => t.addEventListener('click', () => renderStory(t.dataset.char)));
   refreshStoryBadge();
+}
+
+/* ---------- guide ---------- */
+// Text lives in guide.js; the numbers (medal scores, unlock marks) come from
+// MEDALS and CHARACTERS, so the guide always matches the game.
+const GUIDE = window.PixelRunGuide || [];
+let guideTab = GUIDE.length ? GUIDE[0].id : '';
+
+function guideText(s) {
+  return String(s).replace(/\{(\w+)\}/g, (m, k) => (MEDALS[k] !== undefined ? MEDALS[k].toLocaleString('en-US') : m));
+}
+function guideList(rows) {
+  const ul = storyEl('ul', 'guide-list');
+  rows.forEach(([label, text]) => {
+    const li = storyEl('li');
+    li.appendChild(storyEl('strong', '', label));
+    li.appendChild(document.createTextNode(' ' + guideText(text)));
+    ul.appendChild(li);
+  });
+  return ul;
+}
+function renderGuide(id) {
+  const tab = GUIDE.find((t) => t.id === id) || GUIDE[0];
+  if (!tab) return;
+  guideTab = tab.id;
+  guideTabsEl.querySelectorAll('.guide-tab').forEach((b) => {
+    const on = b.dataset.tab === tab.id;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  guideBody.textContent = '';
+  guideBody.scrollTop = 0;
+  tab.sections.forEach((s) => {
+    if (s.list) { guideBody.appendChild(guideList(s.list)); return; }
+    const box = storyEl('div', 'story-chapter');
+    box.appendChild(storyEl('h4', '', guideText(s.h)));
+    box.appendChild(storyEl('p', '', guideText(s.p)));
+    guideBody.appendChild(box);
+  });
+  if (tab.id === 'runners') {
+    guideBody.appendChild(guideList(Object.keys(CHARACTERS).map((cid) => {
+      const c = CHARACTERS[cid];
+      return [c.name, `${c.blurb}. ${c.unlock ? `Unlocks at a best score of ${c.unlock.toLocaleString('en-US')}.` : 'Ready from the start.'}`];
+    })));
+    guideBody.appendChild(storyEl('p', 'guide-note', 'The daily challenge turns every runner trait off so everyone plays the same course.'));
+  }
+}
+function openGuide() {
+  pauseGame();   // reading mid-run freezes the game; resume from the pause screen afterwards
+  guideModal.hidden = false;
+  renderGuide(guideTab);
+  guideClose.focus();
+}
+if (guideBtn && GUIDE.length) {
+  GUIDE.forEach((t) => {
+    const b = storyEl('button', 'guide-tab', `${t.icon} ${t.label}`);
+    b.type = 'button';
+    b.dataset.tab = t.id;
+    b.setAttribute('role', 'tab');
+    b.addEventListener('click', () => renderGuide(t.id));
+    guideTabsEl.appendChild(b);
+  });
+  guideBtn.addEventListener('click', openGuide);
+  guideClose.addEventListener('click', closeModals);
+  guideModal.addEventListener('click', (e) => { if (e.target === guideModal) closeModals(); });
+} else if (guideBtn) {
+  guideBtn.hidden = true;
 }
 
 /* ---------- mode toggle ---------- */

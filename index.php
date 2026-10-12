@@ -120,7 +120,14 @@ $serverDataJson = json_encode(
     | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 ) ?: '{}';
 
-$assetVersion = h((string)$cfg['version']);
+// Cache-buster for the JS/CSS: the app version plus the newest asset's modified
+// time, so a browser that has played before picks up a new game.js or style.css
+// instead of running the cached one. (The version alone never changes.)
+$assetStamp = 0;
+foreach (glob(__DIR__ . '/assets/{js,css}/*.{js,css}', GLOB_BRACE) ?: [] as $assetFile) {
+    $assetStamp = max($assetStamp, (int)filemtime($assetFile));
+}
+$assetVersion = h((string)$cfg['version'] . ($assetStamp ? '.' . $assetStamp : ''));
 
 // Where this game is served from. A <base> tag makes every relative URL (the
 // assets, the API, the installer) resolve to the game's own folder even when
@@ -197,6 +204,11 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
         <span class="daily-icon">📅</span>
         <span class="daily-label">DAILY</span>
       </button>
+      <button id="guide-btn" class="daily-btn guide-btn" type="button"
+              title="How to play: the goal, controls, gifts and medals">
+        <span class="daily-icon">❓</span>
+        <span class="daily-label">GUIDE</span>
+      </button>
       <button id="sound-btn" class="sound-btn" type="button"
               aria-pressed="false" title="Sound on — click to mute">
         <span class="sound-icon">🔊</span>
@@ -256,6 +268,19 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
         </div>
         <button id="ov-again" class="ov-again" type="button" hidden>PLAY AGAIN</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Player guide. Content comes from assets/js/guide.js and is rendered
+       by game.js: one tab per topic. -->
+  <div class="lb-modal" id="guide-modal" hidden role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div class="lb-card story-card">
+      <header class="lb-header">
+        <h2 id="guide-title">❓ GUIDE</h2>
+        <button id="guide-close" class="lb-close" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="lb-tabs guide-tabs" role="tablist" id="guide-tabs"></div>
+      <div class="story-body" id="guide-body" role="tabpanel"></div>
     </div>
   </div>
 
@@ -334,6 +359,7 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
 <script type="application/json" id="pixel-run-config"><?= $serverDataJson ?></script>
 <script src="assets/js/sprites.js?v=<?= $assetVersion ?>"></script>
 <script src="assets/js/stories.js?v=<?= $assetVersion ?>"></script>
+<script src="assets/js/guide.js?v=<?= $assetVersion ?>"></script>
 <script src="assets/js/game.js?v=<?= $assetVersion ?>"></script>
 
 </body>

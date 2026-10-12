@@ -69,6 +69,11 @@
         <span class="daily-icon">📅</span>
         <span class="daily-label">DAILY</span>
       </button>
+      <button id="guide-btn" class="daily-btn guide-btn" type="button"
+              title="How to play: the goal, controls, gifts and medals">
+        <span class="daily-icon">❓</span>
+        <span class="daily-label">GUIDE</span>
+      </button>
       <button id="sound-btn" class="sound-btn" type="button"
               aria-pressed="false" title="Sound on — click to mute">
         <span class="sound-icon">🔊</span>
@@ -123,6 +128,19 @@
         </div>
         <button id="ov-again" class="ov-again" type="button" hidden>PLAY AGAIN</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Player guide. Content comes from assets/js/guide.js and is rendered
+       by game.js: one tab per topic. -->
+  <div class="lb-modal" id="guide-modal" hidden role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div class="lb-card story-card">
+      <header class="lb-header">
+        <h2 id="guide-title">❓ GUIDE</h2>
+        <button id="guide-close" class="lb-close" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="lb-tabs guide-tabs" role="tablist" id="guide-tabs"></div>
+      <div class="story-body" id="guide-body" role="tabpanel"></div>
     </div>
   </div>
 
@@ -186,6 +204,7 @@
 <script type="application/json" id="pixel-run-config">{"apiAvailable":false,"arcadeUrl":""}</script>
 <script src="assets/js/sprites.js"></script>
 <script src="assets/js/stories.js"></script>
+<script src="assets/js/guide.js"></script>
 <script src="assets/js/game.js"></script>
 
 </body>
