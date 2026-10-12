@@ -31,10 +31,15 @@ project uses [Semantic Versioning](https://semver.org/).
   The game also pauses by itself when the tab is hidden. Paused time does not
   count towards the run's duration.
 - Each gift now has its own shape in the game: a bomb with a lit fuse, a shield and an hourglass. The mystery gift keeps the wrapped box with a ?.
+- A **GUIDE** button next to DAILY opens a tabbed how-to-play panel: goal,
+  controls, gifts (including every surprise), medals, modes and runners. Medal
+  scores and unlock marks are read from the game, so it stays accurate. Opening
+  it mid-run pauses the game. Text is in `assets/js/guide.js`.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 
 ### Fixed
+- `index.php` cached the JS and CSS under a fixed `?v=1.0.0`, so browsers that had played before could keep running an old `game.js` (for example without Pause). The cache-buster now includes the newest asset's modified time.
 - Leaving the hidden level works from any state, including mid-run, on
   keyboard and on touch.
 - The ONLINE / OFFLINE button did nothing: a second function named `setMode`
