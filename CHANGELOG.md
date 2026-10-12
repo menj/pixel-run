@@ -40,11 +40,12 @@ project uses [Semantic Versioning](https://semver.org/).
   is smashed, the runner blinks and is safe for two seconds) instead of ending
   the run; losing the last heart ends it. The daily challenge uses lives too,
   so it stays equal for everyone. The hidden level stays one-life.
+- Bomb gifts are more common (45% of gifts, up from 35%).
 - A pink **heart gift** (12% of gifts) wins back a lost heart, or gives +25
   points when your hearts are already full.
-- **Bomber birds**: every 16 to 26 seconds (the first after about 15 seconds) a
-  green bird crosses the top of the screen, shows a "!" and drops something on
-  the runner. One at a time, slow and visible, and dodgeable: duck if it comes
+- **Bomber birds**: rare, and only in a long run. The first comes after about
+  3 minutes, then one every 60 to 90 seconds. A green bird crosses the top of
+  the screen, shows a "!" and drops something on the runner. One at a time, slow and visible, and dodgeable: duck if it comes
   at head height, jump if it comes low. A hit costs a heart; shields,
   lightning and giant mode splat it harmlessly. Never in the hidden level.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
