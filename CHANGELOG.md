@@ -7,14 +7,14 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- Two new medal tiers on the game-over screen: **Copper** (200 points, below
-  Bronze) and **Platinum** (5000 points, above Gold). The tiers are now
-  Copper 200, Bronze 600, Silver 1500, Gold 3000, Platinum 5000.
+- Two new medal tiers on the game-over screen: **Copper** (600 points, below
+  Bronze) and **Platinum** (12000 points, above Gold). The tiers are now
+  Copper 600, Bronze 1500, Silver 3500, Gold 7000, Platinum 12000 (tuned for five hearts).
 - A hidden level. It is not listed anywhere in the interface: it has to be
   found. It plays a fixed course at one steady pace with no pickups, records
   nothing to the leaderboard, the best score, the unlocks or `arcade.stats`,
-  and keeps its own best time on the device (`pixel_run_glitch`). Gold or
-  Platinum gives the first hint, once.
+  and keeps its own best time on the device (`pixel_run_glitch`). Silver or
+  better gives the first hint, once.
 - A third gift: **GREEN slow-mo** eases the world to 55% speed for about six seconds (you keep full control). Gifts are now 50% bomb, 30% shield, 20% slow-mo, and the controls legend uses matching icons (💣 🛡️ ⏳).
 - A **GOLD mystery gift** (20% of gifts) with one random surprise, never the
   same twice running, each with a line from the character and from the

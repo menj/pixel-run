@@ -2051,7 +2051,7 @@ function startGame() {
 }
 
 // Score thresholds for the game-over medal.
-const MEDALS = { copper: 200, bronze: 600, silver: 1500, gold: 3000, platinum: 5000 };
+const MEDALS = { copper: 600, bronze: 1500, silver: 3500, gold: 7000, platinum: 12000 };
 
 function gameOver() {
   game.state = 'over';
@@ -2134,13 +2134,14 @@ function gameOver() {
   }
   ovBest.hidden = !newBest;
   ovResult.hidden = cheated || secret || (!tier && !newBest);
-  // Gold or Platinum is the first time the game hints that something is hiding behind the title screen.
-  // Gold already hints it (Platinum is a long way off at 5000); only the Platinum medal opens it with taps.
-  if ((tier === 'platinum' || tier === 'gold') && !cheated && !storageGet(PLAT_KEY)) {
+  // Silver or better is the first time the game hints that something is hiding behind the title screen.
+  // Silver and up already hint it (Platinum is a very long run); only the Platinum medal opens it with taps.
+  if ((tier === 'platinum' || tier === 'gold' || tier === 'silver') && !cheated && !storageGet(PLAT_KEY)) {
     storageSet(PLAT_KEY, '1');
+    const name = tier.charAt(0).toUpperCase() + tier.slice(1);
     ovSub.innerHTML += tier === 'platinum'
       ? '<br><span class="accent-shield">Platinum! Something glitches behind the title screen. Type GLITCH there, or tap this medal three times.</span>'
-      : '<br><span class="accent-shield">Gold! Something glitches behind the title screen. Type GLITCH there.</span>';
+      : `<br><span class="accent-shield">${name}! Something glitches behind the title screen. Type GLITCH there.</span>`;
   }
   if (cheated) ovSub.innerHTML += '<br><span class="accent-bomb">Admin run — not recorded</span>';
 
