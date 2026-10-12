@@ -952,7 +952,7 @@ function drawSky(sky) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, GROUND_Y);
 
-  const phase = dayPhase();
+  const phase = game.mode === 'secret' ? 0.75 : dayPhase();   // the Glitch Zone is always night: a moon, never a sun
 
   // sun / moon arc
   const arcX = W * 0.15 + (W * 0.7) * ((phase * 2) % 1);
@@ -1258,7 +1258,8 @@ function unlockAudio() {
 // Taps on the dimmed overlay: start from the title screen, or retry from
 // game over when there is no name form to protect from stray taps.
 overlay.addEventListener('pointerdown', (e) => {
-  if (e.target.closest('#ov-submit, #ov-again, .ov-more, #ov-medal')) return;
+  if (e.target.closest('#ov-submit, #ov-again, .ov-more')) return;
+  if (e.target.closest('#ov-medal') && ovMedal.dataset.tier === 'platinum') return;   // its taps are the way to the secret
   if (game.state === 'idle') jumpPress();
   else if (game.state === 'over' && ovSubmit.hidden) restart();
 });
@@ -1306,7 +1307,7 @@ function idleBlurb() {
   const c = trait();
   ovTitle.textContent = game.mode === 'secret' ? 'GLITCH ZONE' : (idleTitle());
   ovSub.textContent = game.mode === 'secret'
-    ? `${GLITCH_OBSTACLES} obstacles, one steady pace, no gifts. Esc to leave`
+    ? `${GLITCH_OBSTACLES} obstacles, one steady pace, no gifts. ${document.documentElement.classList.contains('touch-ui') ? 'DAILY leaves' : 'Esc leaves'}`
     : game.mode === 'daily'
     ? 'Daily challenge: everyone gets the same course'
     : `${CHARACTERS[game.character].name} · ${c.blurb}`;
@@ -1419,7 +1420,7 @@ function gameOver() {
   ovSub.innerHTML = COARSE
     ? `Score <span class="accent-gold">${pad(game.score)}</span>`
     : `Score <span class="accent-gold">${pad(game.score)}</span> · press <span class="key">R</span> or tap to retry`;
-  if (secret) ovSub.innerHTML = `Cleared <span class="accent-gold">${game.cleared}</span> of ${GLITCH_OBSTACLES}${COARSE ? '' : ' · R to retry · Esc to leave'}`;
+  if (secret) ovSub.innerHTML = `Cleared <span class="accent-gold">${game.cleared}</span> of ${GLITCH_OBSTACLES} · ${glitchKeys()}`;
   if (unlocked.length) ovSub.innerHTML += `<br><span class="accent-gold">${unlocked.join(' & ')} unlocked!</span>`;
   if (newChapters.length) ovSub.innerHTML += `<br><span class="accent-gold">📖 New chapter: ${escapeHtml(newChapters.slice(0, 2).join(' · '))}</span>`;
   if (game.mode === 'daily') ovSub.innerHTML += `<br>Daily ${game.dailyDate}`;
@@ -1473,6 +1474,7 @@ const PLAT_KEY = 'pixel_run_platinum_seen';
 const GLITCH_SPEED = 7;
 const GLITCH_OBSTACLES = 40;
 const GLITCH_WORD = 'GLITCH';
+function glitchKeys() { return document.documentElement.classList.contains('touch-ui') ? 'tap to retry · DAILY leaves' : 'R to retry · Esc to leave'; }
 const REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 let glitchTyped = '';
 let medalTaps = [];
@@ -1485,7 +1487,7 @@ function secs(ms) { return (ms / 1000).toFixed(1) + 's'; }
 function enterGlitchZone() {
   if (game.state === 'running' || game.mode === 'secret') return;
   SFX.milestone();
-  showModeNote('Secret found: the Glitch Zone. Esc to leave.', true);
+  showModeNote('Secret found: the Glitch Zone. ' + (document.documentElement.classList.contains('touch-ui') ? 'DAILY leaves.' : 'Esc leaves.'), true);
   setPlayMode('secret');
 }
 function leaveGlitchZone() {
@@ -1509,7 +1511,7 @@ function glitchCleared() {
   ovTitle.textContent = 'ZONE CLEARED';
   ovSub.innerHTML = `Time <span class="accent-gold">${secs(ms)}</span> · best ${secs(best)}`
     + (first && !game.cheated ? '<br><span class="accent-gold">The Glitch is a little less lonely.</span>' : '')
-    + (COARSE ? '' : '<br>R to run it again · Esc to leave');
+    + `<br>${glitchKeys()}`;
   overlay.classList.add('is-over');
   ovAgain.hidden = false;
   ovSubmit.hidden = true;
@@ -2004,7 +2006,7 @@ if (dailyBtn) {
       showModeNote('Finish your run before switching modes');
       return;
     }
-    setPlayMode(game.mode === 'daily' ? 'normal' : 'daily');
+    setPlayMode(game.mode === 'daily' || game.mode === 'secret' ? 'normal' : 'daily');   // from the Glitch Zone this is also the touch way out
   });
 }
 
