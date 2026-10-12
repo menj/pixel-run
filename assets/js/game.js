@@ -552,6 +552,7 @@ const QUIPS = {
   },
   // The obstacles have opinions about it too.
   cactusWither: ['*SIGH*', 'TELL MY MOM...', 'IT WAS THE SUN', 'NOT LIKE THIS', 'I NEEDED WATER'],
+  cactusBurn:   ['HOT HOT HOT!', 'MY SPINES!', 'I AM SO TOAST', 'FIRE! FIRE!', 'SMELLS LIKE CHAR'],
   cactusParty:  ['WOOO!', 'PARTY!', 'IGNORE HIM', 'DJ, DROP IT', 'NEW HAT!'],
   birdBoom:     ['BYE!', 'TELL MY WIFE', 'NOT AGAIN', 'AAAAA!', 'WHY ME'],
   haste:        ['*WHEEZE*', 'NEED... WATER...', 'MY LEGS', 'NEVER AGAIN'],
@@ -845,6 +846,25 @@ function drawCactus(o) {
     // withering: droops sideways, shrinks into the sand and fades
     const t = o.dying / WITHER_TICKS;
     const cx = o.x + o.w / 2;
+    if (o.fire) {
+      // burning: chars as it shrinks, with flames licking up the stem
+      ctx.save();
+      ctx.globalAlpha = 1 - t * 0.9;
+      ctx.translate(cx, GROUND_Y);
+      ctx.scale(1, 1 - 0.7 * t);
+      ctx.translate(-cx, -GROUND_Y);
+      drawCactusBody(o, o.y);
+      ctx.restore();
+      for (let i = 0; i < 7; i++) {
+        const fx = o.x + Math.random() * o.w;
+        const fy = GROUND_Y - Math.random() * o.h * (1 - 0.7 * t);
+        ctx.fillStyle = FLAME_COLORS[Math.floor(Math.random() * 4)];
+        ctx.globalAlpha = 1 - t * 0.7;
+        ctx.fillRect(Math.round(fx), Math.round(fy), 3, 3 + Math.floor(Math.random() * 4));
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
     ctx.save();
     ctx.globalAlpha = 1 - t * 0.8;
     ctx.translate(cx, GROUND_Y);
@@ -1196,6 +1216,19 @@ function spawnBigBoom(x, y) {
   }
 }
 
+const FLAME_COLORS = ['#FFE45E', '#FFB703', '#FF8C00', '#FF4500', '#B22222'];
+function spawnFire(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x: x + (Math.random() - 0.5) * 14, y: y + (Math.random() - 0.5) * 14,
+      vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2,
+      life: 25 + Math.random() * 20,
+      color: FLAME_COLORS[Math.floor(Math.random() * FLAME_COLORS.length)],
+      size: 2 + Math.floor(Math.random() * 3),
+    });
+  }
+}
+
 function spawnSparkle(x, y) {
   for (let i = 0; i < 18; i++) {
     const a = Math.random() * Math.PI * 2;
@@ -1319,11 +1352,11 @@ function updateMystery() {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
     if (!o.dying) continue;
-    if (game.tick % 4 === 0) {
+    if (game.tick % (o.fire ? 2 : 4) === 0) {
       particles.push({
         x: o.x + Math.random() * o.w, y: GROUND_Y - Math.random() * o.h * (1 - o.dying / WITHER_TICKS),
         vx: -0.5 - Math.random(), vy: -0.3 - Math.random() * 0.6,
-        life: 25, color: ['#A68A2E', '#7A6A24', '#C9A227'][Math.floor(Math.random() * 3)], size: 2,
+        life: 25, color: o.fire ? FLAME_COLORS[Math.floor(Math.random() * 5)] : ['#A68A2E', '#7A6A24', '#C9A227'][Math.floor(Math.random() * 3)], size: o.fire ? 3 : 2,
       });
     }
     if (++o.dying >= WITHER_TICKS) { obstacles.splice(i, 1); game.score += 5; }
@@ -1342,6 +1375,17 @@ function updateMystery() {
   if (game.moonT > 0) game.moonT--;
   if (game.hasteT > 0) {
     game.hasteT--;
+    // flame trail along the ground and off the dino's back; it scrolls away with the road
+    for (let i = 0; i < 3; i++) {
+      particles.push({
+        x: dino.x + 2 + Math.random() * 14, y: GROUND_Y - 2 - Math.random() * 12,
+        vx: -worldSpeed() - Math.random(), vy: -0.4 - Math.random() * 0.8,
+        life: 30 + Math.random() * 25,
+        color: FLAME_COLORS[Math.floor(Math.random() * FLAME_COLORS.length)],
+        size: 2 + Math.floor(Math.random() * 3),
+      });
+    }
+    if (game.tick % 2 === 0) spawnFire(dino.x + 6, dino.y + 10 + Math.random() * 28, 1);
     // lightning trail
     particles.push({
       x: dino.x + Math.random() * 20, y: dino.y + Math.random() * STAND_H,
@@ -2454,10 +2498,19 @@ function update() {
     if (o.dying || o.party) continue;   // wilted or dancing: harmless
     if (rectsOverlap(db, obsBox(o))) {
       if (game.shieldT > 0 || game.hasteT > 0) {
-        // shield shatters the obstacle, dino keeps running
-        spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
-        obstacles.splice(i, 1);
-        game.score += game.hasteT > 0 ? 10 : 5;
+        if (game.hasteT > 0 && o.type !== 'bird') {
+          // the speedster is on fire: whatever it runs through burns down
+          o.dying = 1;
+          o.fire = true;
+          game.score += 10;
+          spawnFire(o.x + o.w / 2, o.y + o.h / 2, 16);
+          if (game.chatCD <= 0) { game.chatCD = 40; quip(pick(QUIPS.cactusBurn), o.x + o.w / 2, o.y - 10, '#FF8C00', 9); }
+        } else {
+          // shield shatters the obstacle, dino keeps running
+          spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
+          obstacles.splice(i, 1);
+          game.score += game.hasteT > 0 ? 10 : 5;
+        }
       } else if (game.god) {
         game.cheated = true;   // admin god mode: pass straight through
       } else {
