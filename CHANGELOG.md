@@ -7,13 +7,29 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- Two new medal tiers on the game-over screen: **Copper** (50 points, below
-  Bronze) and **Platinum** (1000 points, above Gold).
+- Two new medal tiers on the game-over screen: **Copper** (100 points, below
+  Bronze) and **Platinum** (2000 points, above Gold). The tiers are now
+  Copper 100, Bronze 200, Silver 500, Gold 1000, Platinum 2000.
 - A hidden level. It is not listed anywhere in the interface: it has to be
   found. It plays a fixed course at one steady pace with no pickups, records
   nothing to the leaderboard, the best score, the unlocks or `arcade.stats`,
   and keeps its own best time on the device (`pixel_run_glitch`). Platinum
   gives the first hint, once.
+- A third gift: **GREEN slow-mo** eases the world to 55% speed for about six seconds (you keep full control). Gifts are now 50% bomb, 30% shield, 20% slow-mo, and the controls legend uses matching icons (💣 🛡️ ⏳).
+- A **GOLD mystery gift** (20% of gifts) with one random surprise, never the
+  same twice running, each with a line from the character and from the
+  obstacles: cacti **wither** away, birds **explode**, **lightning** speedster
+  mode (invulnerable, leaves a burning trail and sets every cactus it passes through ablaze; the dino ends up dizzy and wheezing), cacti stand up and throw a
+  **party** while ignoring you, **moon jump** low gravity, **giant mode** (stomps cacti flat, ground-shaking footsteps), **Hamilton Taxi** (Hamilton, the bird from Beberd, carries you over everything), a delayed **sneeze** that blows every obstacle ahead off the road, or a **jackpot**
+  of +75 points. Characters have their own lines for every gift.
+- Destroying obstacles now always scores, with a floating "+10" (cactus) or
+  "+15" (bird) popup: shield smash, bomb, burn, stomp, wither, bird boom and
+  sneeze all pay the same. Cacti that only dance in the party stay alive and
+  score nothing.
+- **Pause**: press **P** or tap the ⏸ button mid-run. The game freezes, a PAUSED
+  screen offers Resume and Restart, and resuming gives a 3-2-1 countdown.
+  The game also pauses by itself when the tab is hidden. Paused time does not
+  count towards the run's duration.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 

@@ -226,6 +226,17 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
       <?php if ($isAdmin): ?><span class="god-badge" id="god-badge" hidden>GOD</span><?php endif; ?>
     </div>
     <canvas id="game" width="960" height="320"></canvas>
+    <button id="pause-btn" class="pause-btn" type="button" aria-label="Pause (P)" title="Pause (P)" hidden>&#10074;&#10074;</button>
+    <div class="pause-screen" id="pause-screen" role="dialog" aria-label="Paused" hidden>
+      <div class="pause-card">
+        <h2>PAUSED</h2>
+        <p>Press <span class="key">P</span> to resume</p>
+        <div class="pause-actions">
+          <button id="pause-resume" class="pause-action" type="button">RESUME</button>
+          <button id="pause-restart" class="pause-action secondary" type="button">RESTART</button>
+        </div>
+      </div>
+    </div>
     <div class="overlay" id="overlay">
       <div class="overlay-card">
         <h2 id="ov-title">PRESS SPACE TO PLAY</h2>
@@ -310,8 +321,11 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
     <span><strong>↓</strong> duck</span>
     <span><strong>R</strong> restart</span>
     <span><strong>M</strong> mute</span>
-    <span><strong class="accent-bomb">🎁 PINK</strong> bomb</span>
-    <span><strong class="accent-shield">🎁 BLUE</strong> shield</span>
+    <span><strong>P</strong> pause</span>
+    <span><strong class="accent-bomb"><span class="pu-icon">💣</span> PINK</strong> bomb</span>
+    <span><strong class="accent-shield"><span class="pu-icon">🛡️</span> BLUE</strong> shield</span>
+    <span><strong class="accent-slow"><span class="pu-icon">⏳</span> GREEN</strong> slow-mo</span>
+    <span><strong class="accent-mystery"><span class="pu-icon">🎁</span> GOLD</strong> surprise</span>
   </div>
 
   <p class="footer-mark">DNS_PROBE_FINISHED_NO_INTERNET</p>

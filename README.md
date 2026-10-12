@@ -35,8 +35,8 @@ tab.
 
 ## Medals
 
-The game-over screen awards a medal for the run's score: Copper at 50,
-Bronze at 100, Silver at 300, Gold at 600 and Platinum at 1000. The
+The game-over screen awards a medal for the run's score: Copper at 100,
+Bronze at 200, Silver at 500, Gold at 1000 and Platinum at 2000. The
 thresholds are `MEDALS` in `assets/js/game.js` and the colours are
 `--medal-*` in `assets/css/style.css`. Medals are shown on the device only:
 nothing about them is sent to the server, so no database change is needed.
@@ -408,3 +408,12 @@ TRUNCATE TABLE pixel_run.scores;
 ```bash
 mysqldump -u root -p pixel_run scores > scores-backup.sql
 ```
+
+## Gifts
+
+Gift boxes float along the road: PINK bomb (clears the screen), BLUE shield,
+GREEN slow-mo and GOLD surprise. The surprise is one random effect from
+`MYSTERY_FX` in `assets/js/game.js` (wither, bird boom, lightning, cactus party,
+moon jump, giant, Hamilton Taxi, sneeze, jackpot). Reaction lines for each character are in `QUIPS.react`.
+
+Hamilton the bird is the star of [Beberd](https://github.com/menj/beberd) (Apache-2.0); his sprite is reused here for the taxi.

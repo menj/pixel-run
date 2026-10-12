@@ -534,6 +534,129 @@
   ];
   var BOMB_PALETTE   = { b: '#FF477E', r: '#FFD700', k: '#C9184A', '#': '#3A0A1A' };
   var SHIELD_PALETTE = { b: '#48CAE4', r: '#FFFFFF', k: '#06A0B8', '#': '#08313A' };
+  var MYSTERY_PALETTE = { b: '#FFD700', r: '#FF3CAC', k: '#C99700', '#': '#3A2A00' };
+  var SLOW_PALETTE   = { b: '#6BE675', r: '#FFFFFF', k: '#2FB344', '#': '#0B3A14' };
+
+  /* ---------- Hamilton, the bird from Beberd (github.com/menj/beberd), 20 x 18 ----------
+     He gives the free ride in the mystery gift's Hamilton Taxi. The body, three
+     wing poses and racing cap are layered into three flapping frames. */
+  var HAM_BODY = [
+    '......ooooooo.......',
+    '....oobbbbbbboo.....',
+    '...obbbbbbbbbbbo....',
+    '..obbbbbbbbbbeebo...',
+    '.obbbbbbbbbbbepboooo',
+    'obbbbbbbbbbbbbbbokkk',
+    'obbbbbbbbbbbbbbbokkk',
+    'obbbbbbbbbbbbbbboKKK',
+    '.obllllbbbbbbbbbbooo',
+    '.oblllllllbbbbbbo...',
+    '..obllllllllbbbo....',
+    '...oodddddddddoo....',
+    '.....ooooooooo......'
+  ];
+  var HAM_WINGS = {
+    up: [
+      '....................',
+      '....t...............',
+      '....Wt..............',
+      '...WwWt.............',
+      '...WwwWt............',
+      '...WwwwWt...........',
+      '..WwwwwwW...........',
+      '..WwwwwwwW..........',
+      '...WwwwwwwW.........',
+      '....WWWWWWW.........',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................'
+    ],
+    mid: [
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '......WWWWWW........',
+      '..WWWwwwwwwwWW......',
+      '.WwwwwwwwwwwwwWt....',
+      '..WWWwwwwwwwWW......',
+      '......WWWWWW........',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................'
+    ],
+    down: [
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....WWWWWWW.........',
+      '...WwwwwwwwW........',
+      '...WwwwwwwwW........',
+      '...WwwwwwwW.........',
+      '....WwwwwwW.........',
+      '....WwwwwW..........',
+      '.....WwwwW..........',
+      '.....WwwW...........',
+      '......WWt...........',
+      '......t.............'
+    ],
+  };
+  var HAM_CAP = [
+    '....................',
+    '........ooooo.......',
+    '.......oHHHHHHo.....',
+    '.......oHHHHHHHoooo.',
+    '.......ohhhhhhhHHHHo',
+    '........oooooooooo..',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................'
+  ];
+  var HAM_PALETTE = {
+    o: '#1a1424', b: '#FFD23F', l: '#FFEBA9', d: '#C7A431', e: '#FFFFFF', p: '#1a1424',
+    k: '#FF6B35', K: '#BF5028', w: '#D6B035', W: '#1a1424', t: '#FFDC6F',
+    H: '#FF3CAC', h: '#B82B7C', '#': '#1a1424',
+  };
+  function hamilton(pose) {
+    var rows = [], y, x, layer, i;
+    for (y = 0; y < 18; y++) rows.push(new Array(21).join('.').split(''));
+    function paint(grid, dy) {
+      for (var r = 0; r < grid.length; r++) {
+        for (var c = 0; c < grid[r].length; c++) {
+          if (grid[r][c] !== '.' && rows[r + dy]) rows[r + dy][c] = grid[r][c];
+        }
+      }
+    }
+    paint(HAM_BODY, 3);
+    paint(HAM_WINGS[pose], 0);
+    paint(HAM_CAP, 0);
+    return rows.map(function (r) { return r.join(''); });
+  }
 
   /* ---------- helpers ---------- */
 
@@ -627,6 +750,9 @@
     },
     bomb:   { palette: BOMB_PALETTE,   frames: { box: GIFT } },
     shield: { palette: SHIELD_PALETTE, frames: { box: GIFT } },
+    hamilton: { palette: HAM_PALETTE, frames: { up: hamilton('up'), mid: hamilton('mid'), down: hamilton('down') } },
+    slow:   { palette: SLOW_PALETTE,   frames: { box: GIFT } },
+    mystery:{ palette: MYSTERY_PALETTE,frames: { box: GIFT } },
   };
 
   /* ---------- refinement: more detail, smoother edges, light and shade ----------
