@@ -1435,14 +1435,14 @@ function hurtRunner(lines) {
   return false;
 }
 
-// Bomber bird: now and then a bird crosses the top of the screen and drops
+// Bomber bird: rarely, and only after a long run, a bird crosses the top of the screen and drops
 // something on the runner. Fair by design: one at a time, rare, a "!" warning
 // before the drop, a slow visible fall, and it can be dodged (the dropping
 // crosses the runner's column either at head height, so duck, or near the
 // ground, so jump). It costs a heart like any other hit, and never appears in
 // the hidden level.
 const BOMBER_DROP_DX = 330;    // it lets go this far ahead of the runner (a long, flat, visible path)
-const POOP_FALL_TICKS = 55;    // from release to reaching the runner's column
+const POOP_FALL_TICKS = 70;    // from release to reaching the runner's column (slow, so there is time to react)
 function updateBomber() {
   if (game.mode === 'secret') return;
   if (!game.bomber) {
@@ -1450,7 +1450,7 @@ function updateBomber() {
     game.bomber = { x: W + 40, y: 34, dropped: false, tier: bomberRnd() < 0.5 ? 'high' : 'low' };
   }
   const b = game.bomber;
-  b.x -= 3;
+  b.x -= 2.4;   // slow flight: the "!" is on screen for about four seconds before it lets go
   if (!b.dropped && b.x <= dino.x + 24 + BOMBER_DROP_DX) {
     b.dropped = true;
     const fromX = b.x + 18, fromY = b.y + 18;
@@ -1464,7 +1464,7 @@ function updateBomber() {
   }
   if (b.x < -50) {
     game.bomber = null;
-    game.bomberCD = 960 + Math.floor(bomberRnd() * 600);   // then one every 16-26s
+    game.bomberCD = 3600 + Math.floor(bomberRnd() * 1800);   // then a rare one every 60-90s
   }
   for (let i = poops.length - 1; i >= 0; i--) {
     const p = poops[i];
@@ -2030,7 +2030,7 @@ function beginRun() {
   }
   // Daily: the same bomber schedule for everyone, from a generator separate from the course's.
   bomberRnd = game.mode === 'daily' ? mulberry32(hashSeed('pixel-run:bomber:' + game.dailyDate)) : Math.random;
-  game.bomberCD = 900 + Math.floor(bomberRnd() * 300);   // first one about 15-20s in
+  game.bomberCD = 10800 + Math.floor(bomberRnd() * 1800);   // first one only after a long run: about 3-3.5 minutes in
   game.jumpBuf = 0;
   game.shake = 0;
   game.cheated = game.god;
