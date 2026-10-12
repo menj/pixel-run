@@ -199,6 +199,11 @@ const SFX = {
     [523, 659, 784, 1047].forEach((f, i) => tone({ freq: f, dur: 0.09, type: 'square', vol: 0.04, delay: i * 0.05 }));
     tone({ freq: 1568, freqEnd: 1175, dur: 0.2, type: 'triangle', vol: 0.04, delay: 0.22 });
   },
+  // Lost a heart: a short falling buzz.
+  hurt:      () => {
+    tone({ freq: 320, freqEnd: 90, dur: 0.22, type: 'sawtooth', vol: 0.08 });
+    noise({ dur: 0.12, vol: 0.06, filterFreq: 500 });
+  },
   // Two-note ding for every 100-point milestone.
   milestone: () => {
     tone({ freq: 880,  dur: 0.07, type: 'square',   vol: 0.04 });
@@ -267,6 +272,9 @@ const game = {
   paused: false,      // frozen by the player (P, the pause button, or the tab being hidden)
   resumeT: 0,         // ticks left in the 3-2-1 after resuming
   pausedAt: 0,        // ms timestamp the pause began, so run time excludes it
+  lives: 3,           // hearts left; the run ends when the last one is lost
+  maxLives: 3,
+  invulT: 0,          // ticks of grace after losing a heart
   chatCD: 0,          // spacing between lines said by obstacles
   mysteryLast: '',    // last surprise, so it never repeats back to back
   bombFlash: 0,       // screen flash from bomb pickup
@@ -1828,6 +1836,8 @@ document.querySelectorAll('.char-btn').forEach((btn) => {
 /* ---------- game flow ---------- */
 // Everything that must be fresh at the start of every run.
 function beginRun() {
+  game.lives = game.mode === 'secret' ? 1 : game.maxLives;
+  game.invulT = 0;
   if (game.mode === 'daily') {
     game.dailyDate = utcDate();
     game.dailyBest = parseInt(storageGet(DAILY_KEY + game.dailyDate) || '0', 10) || 0;
@@ -2751,7 +2761,7 @@ function update() {
   const gdb = { x: dino.x - 18, y: dino.y + STAND_H - 88, w: 84, h: 88 };   // the giant's bigger body
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
-    if (o.dying || o.party || o.fling || game.taxiT > 0) continue;   // wilted, dancing, blown away or flown over: harmless
+    if (o.dying || o.party || o.fling || game.taxiT > 0 || game.invulT > 0) continue;   // wilted, dancing, blown away or flown over: harmless
     if (rectsOverlap(game.giantT > 0 ? gdb : db, obsBox(o))) {
       if (game.shieldT > 0 || game.hasteT > 0 || game.giantT > 0) {
         if (game.hasteT > 0 && o.type !== 'bird') {
@@ -2778,8 +2788,24 @@ function update() {
       } else if (game.god) {
         game.cheated = true;   // admin god mode: pass straight through
       } else {
-        gameOver();
-        break;
+        game.lives--;
+        if (game.lives > 0) {
+          // lose a heart, not the run: the obstacle is smashed, the runner blinks, and play carries on
+          spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
+          obstacles.splice(i, 1);
+          game.invulT = 120;
+          dino.hurtFlash = 120;
+          game.shake = 12;
+          impacts.push({ x: dino.x + 47, y: dino.y + 16, t: 0 });
+          setFace('x', 50);
+          SFX.hurt();
+          const h = headPos();
+          quip(pick(QUIPS.hit[game.character] || QUIPS.hit.dino), h.x - 4, h.y - 12, '#FFFFFF', 13);
+          quip(game.lives === 1 ? 'LAST LIFE!' : `${game.lives} LIVES LEFT`, h.x - 4, h.y - 30, '#FF6F91', 11);
+        } else {
+          gameOver();
+          break;
+        }
       }
     } else if (game.nearCD <= 0 && !o.near && game.shieldT <= 0 && game.hasteT <= 0 && game.giantT <= 0 && !game.god) {
       // close call: overlapping horizontally with a few units of clearance
@@ -2801,6 +2827,8 @@ function update() {
     glitchCleared();
     return;
   }
+
+  if (game.invulT > 0) game.invulT--;
 
   // slow-mo countdown
   if (game.slowT > 0) game.slowT--;
@@ -3005,6 +3033,20 @@ function render() {
   }
 
   if (game.mode === 'secret') drawGlitchFx();
+
+  // hearts, beside the pause button
+  if (game.state !== 'idle' && game.mode !== 'secret') {
+    const HEART = ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'];
+    for (let n = 0; n < game.maxLives; n++) {
+      const full = n < game.lives;
+      const hx = 54 + n * 20, hy = 12;
+      const pulse = full && game.invulT > 0 && game.tick % 10 < 5;
+      ctx.fillStyle = full ? (pulse ? '#FFFFFF' : '#FF3C6E') : 'rgba(255,255,255,0.18)';
+      HEART.forEach((row, r) => {
+        for (let c = 0; c < 7; c++) if (row[c] === 'X') ctx.fillRect(hx + c * 2, hy + r * 2, 2, 2);
+      });
+    }
+  }
 
   // 3-2-1 after resuming
   if (game.resumeT > 0) {

@@ -25,7 +25,7 @@ Both pages load the same `assets/` files, so gameplay is identical.
 
 ## Playing
 
-Space or ↑ jumps (hold to jump higher), ↓ ducks, R restarts, M mutes. On
+You get three lives (hearts beside the pause button): a hit costs one heart and a couple of seconds of grace, and the run ends when the last is gone. Space or ↑ jumps (hold to jump higher), ↓ ducks, R restarts, M mutes. On
 touch screens use the on-screen buttons or tap the game. Eeny and Meeny
 throw their legs wide while jumping (looks only; the hitbox is unchanged). Each character has
 a trait (Miny glides while jump is held, Moe starts with a shield). Miny
