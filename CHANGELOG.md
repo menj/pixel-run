@@ -10,13 +10,16 @@ project uses [Semantic Versioning](https://semver.org/).
 - Two new medal tiers on the game-over screen: **Copper** (50 points, below
   Bronze) and **Platinum** (1000 points, above Gold).
 - A hidden level. It is not listed anywhere in the interface: it has to be
-  found. It plays a fixed course, records nothing to the leaderboard or the
-  best score, and keeps its own best time on the device.
-
+  found. It plays a fixed course at one steady pace with no pickups, records
+  nothing to the leaderboard, the best score, the unlocks or `arcade.stats`,
+  and keeps its own best time on the device (`pixel_run_glitch`). Platinum
+  gives the first hint, once.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 
 ### Fixed
+- Leaving the hidden level works from any state, including mid-run, on
+  keyboard and on touch.
 - The ONLINE / OFFLINE button did nothing: a second function named `setMode`
   (the daily-challenge toggle) shadowed the one that switches the server
   mode. The daily toggle is now `setPlayMode`.

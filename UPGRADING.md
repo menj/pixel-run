@@ -1,5 +1,11 @@
 # Upgrading
 
+## To the release with Copper and Platinum medals
+
+No database change and nothing to run. Upload the files; medals and the
+hidden level live in the browser only. The ONLINE / OFFLINE button works
+again after this release.
+
 ## To the release with PostgreSQL and SQLite support
 
 Nothing to do for existing MySQL/MariaDB installs: a config without
