@@ -272,6 +272,9 @@ const game = {
   paused: false,      // frozen by the player (P, the pause button, or the tab being hidden)
   resumeT: 0,         // ticks left in the 3-2-1 after resuming
   pausedAt: 0,        // ms timestamp the pause began, so run time excludes it
+  bomber: null,       // the bird flying across the top, about to drop something
+  bomberCD: 0,        // ticks until the next one
+  deathBy: '',        // what ended the run, for a line on the game-over card
   lives: 3,           // hearts left; the run ends when the last one is lost
   maxLives: 3,
   invulT: 0,          // ticks of grace after losing a heart
@@ -367,6 +370,7 @@ const dino = {
 /* ---------- entities ---------- */
 const obstacles = [];
 const gifts = [];
+const poops = [];   // droppings in flight
 const clouds = [];
 const stars = [];
 const particles = [];
@@ -589,6 +593,12 @@ const QUIPS = {
   stomp:     ['SQUISH!', 'FLAT!', 'PANCAKE!', 'OOF'],
   taxiBird:  ['HAMILTON AIRLINES', 'NO REFUNDS', 'MIND THE FEATHERS', 'FIVE STARS PLEASE', 'ALL ABOARD!'],
   taxiBye:   ["THAT'LL BE 5 COINS", 'MIND THE GAP!', 'TIPS WELCOME', 'RATE ME 5 STARS'],
+  poopBird:  ['OOPS!', 'MY BAD', 'INCOMING!', 'SORRY NOT SORRY', 'NATURE CALLS'],
+  poopHit: {
+    dino: ['EWWW!', 'MY FACE!'], cat: ['HISS! MY FUR!', 'THE INDIGNITY'],
+    penguin: ['RUDE.', 'FELLOW BIRD?!'], robot: ['CORROSIVE!', 'WASH CYCLE?'],
+  },
+  poopMiss:  ['SPLAT.', 'PHEW!', 'MISSED ME!'],
   // The obstacles have opinions about it too.
   cactusWither: ['*SIGH*', 'TELL MY MOM...', 'IT WAS THE SUN', 'NOT LIKE THIS', 'I NEEDED WATER'],
   cactusBurn:   ['HOT HOT HOT!', 'MY SPINES!', 'I AM SO TOAST', 'FIRE! FIRE!', 'SMELLS LIKE CHAR'],
@@ -1385,6 +1395,126 @@ function activateMystery() {
   quip(fx.name, headPos().x, headPos().y - 12, fx.color, 13);
 }
 
+// The runner takes a hit: one heart is lost, or the run ends on the last one.
+// `lines` is the per-character dialogue for the hit. Returns true if the run ended.
+function hurtRunner(lines) {
+  game.lives--;
+  if (game.lives <= 0) { gameOver(); return true; }
+  game.invulT = 120;
+  dino.hurtFlash = 120;
+  game.shake = 12;
+  impacts.push({ x: dino.x + 47, y: dino.y + 16, t: 0 });
+  setFace('x', 50);
+  SFX.hurt();
+  const h = headPos();
+  quip(pick(lines[game.character] || lines.dino), h.x - 4, h.y - 12, '#FFFFFF', 13);
+  quip(game.lives === 1 ? 'LAST LIFE!' : `${game.lives} LIVES LEFT`, h.x - 4, h.y - 30, '#FF6F91', 11);
+  return false;
+}
+
+// Bomber bird: now and then a bird crosses the top of the screen and drops
+// something on the runner. Fair by design: one at a time, rare, a "!" warning
+// before the drop, a slow visible fall, and it can be dodged (the dropping
+// crosses the runner's column either at head height, so duck, or near the
+// ground, so jump). It costs a heart like any other hit, and never appears in
+// the hidden level.
+const BOMBER_DROP_DX = 330;    // it lets go this far ahead of the runner (a long, flat, visible path)
+const POOP_FALL_TICKS = 55;    // from release to reaching the runner's column
+function updateBomber() {
+  if (game.mode === 'secret') return;
+  if (!game.bomber) {
+    if (--game.bomberCD > 0) return;
+    game.bomber = { x: W + 40, y: 34, dropped: false, tier: rnd() < 0.5 ? 'high' : 'low', said: false };
+  }
+  const b = game.bomber;
+  b.x -= 3;
+  if (!b.dropped && b.x <= dino.x + 24 + BOMBER_DROP_DX) {
+    b.dropped = true;
+    const fromX = b.x + 18, fromY = b.y + 18;
+    const toY = b.tier === 'high' ? GROUND_Y - 56 : GROUND_Y - 14;
+    const T = POOP_FALL_TICKS;
+    poops.push({
+      x: fromX, y: fromY, vx: (dino.x + 24 - fromX) / T, vy: 0,
+      g: 2 * (toY - fromY) / (T * (T + 1)), rot: 0,
+    });
+    quip(pick(QUIPS.poopBird), b.x + 18, b.y + 30, '#C8E6A0', 10);
+  }
+  if (b.x < -50) {
+    game.bomber = null;
+    game.bomberCD = 960 + Math.floor(rnd() * 600);   // then one every 16-26s
+  }
+  for (let i = poops.length - 1; i >= 0; i--) {
+    const p = poops[i];
+    p.vy += p.g;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += 0.25;
+    const box = { x: p.x - 5, y: p.y - 5, w: 10, h: 10 };
+    const rb = game.giantT > 0 ? { x: dino.x - 18, y: dino.y + STAND_H - 88, w: 84, h: 88 } : dinoBox();
+    if (rectsOverlap(box, rb)) {
+      poops.splice(i, 1);
+      spawnDropping(p.x, p.y, 14);
+      if (game.shieldT > 0 || game.hasteT > 0 || game.giantT > 0 || game.invulT > 0 || game.taxiT > 0) {
+        // protected: it splats harmlessly
+        quip('SPLAT!', p.x, p.y - 10, '#C8E6A0', 10);
+      } else if (game.god) {
+        game.cheated = true;
+      } else {
+        game.deathBy = 'poop';
+        hurtRunner(QUIPS.poopHit);
+      }
+      continue;
+    }
+    if (p.y >= GROUND_Y - 4 || p.x < -20) {
+      poops.splice(i, 1);
+      if (p.y >= GROUND_Y - 4) { spawnDropping(p.x, GROUND_Y - 4, 8); if (Math.abs(p.x - (dino.x + 24)) < 120) quip(pick(QUIPS.poopMiss), p.x, GROUND_Y - 20, '#C8E6A0', 9); }
+    }
+  }
+}
+function spawnDropping(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x, y, vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 2.5,
+      life: 22 + Math.random() * 14,
+      color: ['#7B4A1E', '#A9743A', '#4A2A0E'][Math.floor(Math.random() * 3)], size: 2,
+    });
+  }
+}
+const POOP_ART = ['...XX..', '..XXXX.', '.XXHXXX', '..XXXX.', '.XXXXXX', 'DDDDDDD'];
+function drawBomber() {
+  const b = game.bomber;
+  if (b) {
+    const flapUp = Math.floor(game.tick / 8) % 2 === 0;
+    const bob = Math.sin(game.tick * 0.12) * 2;
+    blit(flapUp ? SPR.normal.bomber.up : SPR.normal.bomber.down, b.x, b.y + bob);
+    // "!" warning from the moment it is on screen until it lets go
+    if (!b.dropped && game.tick % 20 < 12) {
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#1B1030';
+      ctx.fillStyle = '#FFD700';
+      ctx.strokeText('!', b.x + 16, b.y - 8);
+      ctx.fillText('!', b.x + 16, b.y - 8);
+    }
+  }
+  for (const p of poops) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(Math.sin(p.rot) * 0.5);
+    POOP_ART.forEach((row, r) => {
+      for (let c = 0; c < 7; c++) {
+        const ch = row[c];
+        if (ch === '.') continue;
+        ctx.fillStyle = ch === 'H' ? '#A9743A' : ch === 'D' ? '#4A2A0E' : '#7B4A1E';
+        ctx.fillRect(-7 + c * 2, -6 + r * 2, 2, 2);
+      }
+    });
+    ctx.restore();
+  }
+}
+
 // Per-tick upkeep for the timed surprises, and the effects that act on obstacles.
 function updateMystery() {
   const visible = (o) => o.x < W - 10;   // only act on what the player can see
@@ -1859,6 +1989,9 @@ document.querySelectorAll('.char-btn').forEach((btn) => {
 function beginRun() {
   game.lives = game.mode === 'secret' ? 1 : game.maxLives;
   game.invulT = 0;
+  game.bomber = null;
+  game.deathBy = '';
+  poops.length = 0;
   if (game.mode === 'daily') {
     game.dailyDate = utcDate();
     game.dailyBest = parseInt(storageGet(DAILY_KEY + game.dailyDate) || '0', 10) || 0;
@@ -1872,6 +2005,7 @@ function beginRun() {
   } else {
     rnd = Math.random;
   }
+  game.bomberCD = 900 + Math.floor(rnd() * 300);   // first one about 15-20s in; ticks and rnd only, so the daily course stays identical
   game.jumpBuf = 0;
   game.shake = 0;
   game.cheated = game.god;
@@ -1943,6 +2077,7 @@ function gameOver() {
   if (unlocked.length) ovSub.innerHTML += `<br><span class="accent-gold">${unlocked.join(' & ')} unlocked!</span>`;
   if (newChapters.length) ovSub.innerHTML += `<br><span class="accent-gold">📖 New chapter: ${escapeHtml(newChapters.slice(0, 2).join(' · '))}</span>`;
   if (game.mode === 'daily') ovSub.innerHTML += `<br>Daily ${game.dailyDate}`;
+  if (game.deathBy === 'poop') ovSub.innerHTML += '<br>Splatted by a bird. Rude.';
   overlay.classList.add('is-over');
   ovAgain.hidden = false;
 
@@ -2064,6 +2199,8 @@ function restart() {
   game.paused = false;
   game.resumeT = 0;
   pauseScreen.hidden = true;
+  game.bomber = null;
+  poops.length = 0;
   ovResult.hidden = true;
   ovAgain.hidden = true;
   overlay.classList.remove('is-over');
@@ -2776,6 +2913,7 @@ function update() {
   }
 
   updateMystery();
+  updateBomber();
 
   // collision
   const db = dinoBox();
@@ -2809,24 +2947,10 @@ function update() {
       } else if (game.god) {
         game.cheated = true;   // admin god mode: pass straight through
       } else {
-        game.lives--;
-        if (game.lives > 0) {
-          // lose a heart, not the run: the obstacle is smashed, the runner blinks, and play carries on
-          spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
-          obstacles.splice(i, 1);
-          game.invulT = 120;
-          dino.hurtFlash = 120;
-          game.shake = 12;
-          impacts.push({ x: dino.x + 47, y: dino.y + 16, t: 0 });
-          setFace('x', 50);
-          SFX.hurt();
-          const h = headPos();
-          quip(pick(QUIPS.hit[game.character] || QUIPS.hit.dino), h.x - 4, h.y - 12, '#FFFFFF', 13);
-          quip(game.lives === 1 ? 'LAST LIFE!' : `${game.lives} LIVES LEFT`, h.x - 4, h.y - 30, '#FF6F91', 11);
-        } else {
-          gameOver();
-          break;
-        }
+        // lose a heart, not the run: the obstacle is smashed, the runner blinks, and play carries on
+        if (hurtRunner(QUIPS.hit)) break;
+        spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
+        obstacles.splice(i, 1);
       }
     } else if (game.nearCD <= 0 && !o.near && game.shieldT <= 0 && game.hasteT <= 0 && game.giantT <= 0 && !game.god) {
       // close call: overlapping horizontally with a few units of clearance
@@ -2923,6 +3047,7 @@ function render() {
 
   // gifts (in front of obstacles so the player sees them)
   for (const g of gifts) drawGift(g);
+  drawBomber();
 
   if (game.god) ctx.globalAlpha = 0.55;
   if (game.taxiT > 0) {

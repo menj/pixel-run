@@ -40,6 +40,11 @@ project uses [Semantic Versioning](https://semver.org/).
   instead of ending the run; losing the last heart ends it. The daily
   challenge uses lives too, so it stays equal for everyone. The hidden level
   stays one-life.
+- **Bomber birds**: every 16 to 26 seconds (the first after about 15 seconds) a
+  green bird crosses the top of the screen, shows a "!" and drops something on
+  the runner. One at a time, slow and visible, and dodgeable: duck if it comes
+  at head height, jump if it comes low. A hit costs a heart; shields,
+  lightning and giant mode splat it harmlessly. Never in the hidden level.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 
