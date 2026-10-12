@@ -40,6 +40,7 @@ project uses [Semantic Versioning](https://semver.org/).
   is smashed, the runner blinks and is safe for two seconds) instead of ending
   the run; losing the last heart ends it. The daily challenge uses lives too,
   so it stays equal for everyone. The hidden level stays one-life.
+- Bomb gifts are more common (45% of gifts, up from 35%).
 - A pink **heart gift** (12% of gifts) wins back a lost heart, or gives +25
   points when your hearts are already full.
 - **Bomber birds**: rare, and only in a long run. The first comes after about

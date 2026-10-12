@@ -1007,10 +1007,10 @@ function drawBird(o) {
 
 /* ---------- pickups: gift boxes ---------- */
 function makeGift() {
-  // 35% bombs, 22% shields, 13% slow-mo, 18% mystery, 12% heart — bombs are the headline reward.
+  // 45% bombs, 18% shields, 10% slow-mo, 15% mystery, 12% heart — bombs are the headline reward (players asked for more).
   // Fixed odds (the heart is checked at pickup, not here) so a daily-challenge course is identical for everyone.
   const roll = rnd();
-  const kind = roll < 0.35 ? 'bomb' : roll < 0.57 ? 'shield' : roll < 0.70 ? 'slow' : roll < 0.88 ? 'mystery' : 'life';
+  const kind = roll < 0.45 ? 'bomb' : roll < 0.63 ? 'shield' : roll < 0.73 ? 'slow' : roll < 0.88 ? 'mystery' : 'life';
   // float at jumpable heights so the player has to commit to grab them
   const tier = rnd();
   let y;
