@@ -311,7 +311,7 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
     <span><strong>R</strong> restart</span>
     <span><strong>M</strong> mute</span>
     <span><strong class="accent-bomb">🎁 PINK</strong> bomb</span>
-    <span><strong class="accent-shield">🎁 BLUE</strong> shield</span>
+    <span><strong class="accent-shield"><span class="gift-icon">🎁</span> BLUE</strong> shield</span>
   </div>
 
   <p class="footer-mark">DNS_PROBE_FINISHED_NO_INTERNET</p>
