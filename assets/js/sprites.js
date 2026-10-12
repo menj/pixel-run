@@ -532,7 +532,42 @@
     'bbbrbbb',
     'kkkrkkk',
   ];
-  var BOMB_PALETTE   = { b: '#FF477E', r: '#FFD700', k: '#C9184A', '#': '#3A0A1A' };
+  // Each gift has its own silhouette (7 x 9): a bomb with a lit fuse, a shield, an hourglass.
+  // The mystery gift keeps the wrapped box above.
+  var BOMB = [
+    '....r.r',
+    '.....r.',
+    '....k..',
+    '..bbbb.',
+    '.bwbbbb',
+    'bwbbbbb',
+    'bbbbbbk',
+    '.bbbbkk',
+    '..kkkk.',
+  ];
+  var SHIELD = [
+    'bbbbbbb',
+    'brbbbkb',
+    'brbbbkb',
+    'bbbbbkb',
+    'bbbbbkb',
+    '.bbbbk.',
+    '.bbbkk.',
+    '..bkk..',
+    '...k...',
+  ];
+  var HOURGLASS = [
+    'kkkkkkk',
+    'bbbbbbb',
+    '.brrrb.',
+    '..brb..',
+    '...b...',
+    '..brb..',
+    '.brrrb.',
+    'bbbbbbb',
+    'kkkkkkk',
+  ];
+  var BOMB_PALETTE   = { b: '#FF477E', r: '#FFD700', k: '#C9184A', w: '#FFFFFF', '#': '#3A0A1A' };
   var SHIELD_PALETTE = { b: '#48CAE4', r: '#FFFFFF', k: '#06A0B8', '#': '#08313A' };
   var MYSTERY_PALETTE = { b: '#FFD700', r: '#FF3CAC', k: '#C99700', '#': '#3A2A00' };
   var SLOW_PALETTE   = { b: '#6BE675', r: '#FFFFFF', k: '#2FB344', '#': '#0B3A14' };
@@ -748,10 +783,10 @@
       palette: BIRD_PALETTE,
       frames: { up: BIRD_UP, down: BIRD_DOWN },
     },
-    bomb:   { palette: BOMB_PALETTE,   frames: { box: GIFT } },
-    shield: { palette: SHIELD_PALETTE, frames: { box: GIFT } },
+    bomb:   { palette: BOMB_PALETTE,   frames: { box: BOMB } },
+    shield: { palette: SHIELD_PALETTE, frames: { box: SHIELD } },
     hamilton: { palette: HAM_PALETTE, frames: { up: hamilton('up'), mid: hamilton('mid'), down: hamilton('down') } },
-    slow:   { palette: SLOW_PALETTE,   frames: { box: GIFT } },
+    slow:   { palette: SLOW_PALETTE,   frames: { box: HOURGLASS } },
     mystery:{ palette: MYSTERY_PALETTE,frames: { box: GIFT } },
   };
 
