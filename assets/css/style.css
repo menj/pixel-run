@@ -26,6 +26,7 @@
   .accent-gold   { color: #FFD700; }
   .accent-bomb   { color: #FF477E; }
   .accent-shield { color: #48CAE4; }
+  .accent-slow   { color: #6BE675; }
 
   html, body {
     min-height: 100%;
@@ -650,8 +651,7 @@
   /* Must out-rank `.controls span strong` above, or both labels stay pink. */
   .controls span strong.accent-bomb   { color: #FF477E; }
   .controls span strong.accent-shield { color: #48CAE4; }
-  /* The gift emoji can't be recoloured directly, so tint the shield one blue. */
-  .controls .accent-shield .gift-icon { filter: hue-rotate(170deg) saturate(1.4); }
+  .controls span strong.accent-slow   { color: #6BE675; }
 
   .pulse {
     animation: pulse 1.6s ease-in-out infinite;

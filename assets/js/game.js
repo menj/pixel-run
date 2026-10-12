@@ -184,6 +184,11 @@ const SFX = {
     tone({ freq: 659, dur: 0.09, type: 'sine', vol: 0.05, delay: 0.05 });
     tone({ freq: 784, dur: 0.18, type: 'sine', vol: 0.05, delay: 0.10 });
   },
+  // Slow-mo pickup: a descending wobble, like a tape slowing down.
+  slow:      () => {
+    tone({ freq: 660, freqEnd: 220, dur: 0.28, type: 'triangle', vol: 0.06 });
+    tone({ freq: 330, freqEnd: 110, dur: 0.30, type: 'sine',     vol: 0.05, delay: 0.04 });
+  },
   // Two-note ding for every 100-point milestone.
   milestone: () => {
     tone({ freq: 880,  dur: 0.07, type: 'square',   vol: 0.04 });
@@ -239,6 +244,8 @@ const game = {
   giftCD: 360,        // first gift after ~6s
   shieldT: 0,         // shield ticks remaining
   shieldMax: 540,     // ~9s of shield at 60fps
+  slowT: 0,           // slow-mo ticks remaining
+  slowMax: 360,       // ~6s of slow-mo at 60fps
   bombFlash: 0,       // screen flash from bomb pickup
   flashCD: 0,         // gold milestone flash
   hitFlash: 0,        // white flash on collision
@@ -489,6 +496,7 @@ const QUIPS = {
   nearRobot: ['RECALCULATING', 'THAT WAS 3MM', 'WHEW.EXE'],
   bomb:      ['KABOOM!', 'BOOM!', 'MIC DROP', 'NICE.', 'BYE CACTI!'],
   shield:    ['SHINY!', 'BUBBLE TIME', 'BRING IT', 'UNTOUCHABLE'],
+  slow:      ['SLOW-MO!', 'MATRIX MODE', 'CHILL.', 'TIME OUT'],
   milestone: ['LOOK AT ME GO', 'NICE!', 'ZOOM!', 'UNSTOPPABLE'],
 };
 function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
@@ -785,8 +793,9 @@ function drawBird(o) {
 
 /* ---------- pickups: gift boxes ---------- */
 function makeGift() {
-  // 65% bombs, 35% shields — bombs are the headline reward
-  const kind = rnd() < 0.65 ? 'bomb' : 'shield';
+  // 50% bombs, 30% shields, 20% slow-mo — bombs are the headline reward
+  const roll = rnd();
+  const kind = roll < 0.5 ? 'bomb' : roll < 0.8 ? 'shield' : 'slow';
   // float at jumpable heights so the player has to commit to grab them
   const tier = rnd();
   let y;
@@ -857,7 +866,7 @@ function mix(a, b, t) {
 
 /* ---------- drawing: ground ---------- */
 function drawGround(sky) {
-  const offset = Math.floor(game.tick * game.speed) % 32;
+  const offset = Math.floor(game.tick * worldSpeed()) % 32;
 
   // base ground band: a gentle vertical gradient instead of a flat fill
   const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
@@ -1087,6 +1096,21 @@ function activateShield() {
   SFX.shield();
   setFace('happy', 70);
   quip(pick(QUIPS.shield), headPos().x, headPos().y - 12, '#48CAE4', 11);
+}
+
+function activateSlow() {
+  game.slowT = game.slowMax;
+  spawnSparkle(dino.x + 22, dino.y + 24);
+  SFX.slow();
+  setFace('wide', 50);
+  quip(pick(QUIPS.slow), headPos().x, headPos().y - 12, '#6BE675', 11);
+}
+
+const SLOW_FACTOR = 0.55;   // world speed multiplier while slow-mo is active
+
+// The world's scroll speed: slow-mo eases everything but the player.
+function worldSpeed() {
+  return game.slowT > 0 ? game.speed * SLOW_FACTOR : game.speed;
 }
 
 function updateParticles() {
@@ -1555,6 +1579,7 @@ function restart() {
   game.spawnCD = 60;
   game.giftCD = 360;
   game.shieldT = 0;
+  game.slowT = 0;
   game.bombFlash = 0;
   game.flashCD = 0;
   game.nextMilestone = 100;
@@ -2058,7 +2083,7 @@ function update() {
 
   // speed ramp (the Glitch Zone keeps one fixed pace)
   if (game.mode !== 'secret' && game.speed < game.maxSpeed) game.speed += game.speedGrow;
-  game.scroll += game.speed;
+  game.scroll += worldSpeed();
 
   // score (in the Glitch Zone the score is simply how many obstacles are behind you)
   if (game.mode === 'secret') game.score = game.cleared;
@@ -2122,7 +2147,7 @@ function update() {
 
   // move obstacles
   for (let i = obstacles.length - 1; i >= 0; i--) {
-    obstacles[i].x -= game.speed;
+    obstacles[i].x -= worldSpeed();
     if (obstacles[i].x + obstacles[i].w < 0) {
       // count it as cleared and nudge the speed up a notch
       game.cleared++;
@@ -2137,10 +2162,11 @@ function update() {
   const db2 = dinoBox();
   for (let i = gifts.length - 1; i >= 0; i--) {
     const g = gifts[i];
-    g.x -= game.speed;
+    g.x -= worldSpeed();
     const gb = { x: g.x, y: g.y, w: g.w, h: g.h };
     if (rectsOverlap(db2, gb)) {
       if (g.kind === 'bomb') activateBomb();
+      else if (g.kind === 'slow') activateSlow();
       else activateShield();
       gifts.splice(i, 1);
       continue;
@@ -2150,7 +2176,7 @@ function update() {
 
   // clouds
   for (const c of clouds) {
-    c.x -= c.speed + game.speed * 0.12;
+    c.x -= c.speed + worldSpeed() * 0.12;
     if (c.x + c.w < 0) {
       c.x = W + 20;
       c.y = 40 + Math.random() * 100;
@@ -2200,6 +2226,9 @@ function update() {
     glitchCleared();
     return;
   }
+
+  // slow-mo countdown
+  if (game.slowT > 0) game.slowT--;
 
   // shield countdown
   if (game.shieldT > 0) {
@@ -2304,10 +2333,27 @@ function render() {
     ctx.fillRect(tx, ty, w * (game.shieldT / game.shieldMax), 4);
   }
 
+  // slow-mo timer bar (green, under the shield bar's spot)
+  if (game.slowT > 0) {
+    const ducked = dino.ducking && !dino.jumping;
+    const ty = (ducked ? GROUND_Y - DUCK_H : dino.y) - (game.shieldT > 0 ? 20 : 12);
+    const flicker = game.slowT < 90 && game.tick % 6 < 3;
+    ctx.fillStyle = 'rgba(13,2,33,0.6)';
+    ctx.fillRect(dino.x - 6, ty, 60, 4);
+    ctx.fillStyle = flicker ? '#FF477E' : '#6BE675';
+    ctx.fillRect(dino.x - 6, ty, 60 * (game.slowT / game.slowMax), 4);
+  }
+
   drawParticles();
   drawImpacts();
   drawQuips();
   ctx.restore();
+
+  // slow-mo tint
+  if (game.slowT > 0) {
+    ctx.fillStyle = 'rgba(107,230,117,0.07)';
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // bomb flash overlay
   if (game.bombFlash > 0) {

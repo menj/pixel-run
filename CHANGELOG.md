@@ -15,6 +15,7 @@ project uses [Semantic Versioning](https://semver.org/).
   nothing to the leaderboard, the best score, the unlocks or `arcade.stats`,
   and keeps its own best time on the device (`pixel_run_glitch`). Platinum
   gives the first hint, once.
+- A third gift: **GREEN slow-mo** eases the world to 55% speed for about six seconds (you keep full control). Gifts are now 50% bomb, 30% shield, 20% slow-mo, and the controls legend uses matching icons (💣 🛡️ ⏳).
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 
