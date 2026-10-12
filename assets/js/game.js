@@ -256,6 +256,9 @@ const game = {
   partyT: 0,          // mystery gift: cacti turn into harmless dancers
   hasteT: 0,          // mystery gift: speedster mode
   moonT: 0,           // mystery gift: low gravity
+  giantT: 0,          // mystery gift: giant mode, stomps what it meets
+  taxiT: 0,           // mystery gift: a bird carries the dino over everything
+  sneezeT: 0,         // mystery gift: wind-up, then an obstacle-clearing sneeze
   chatCD: 0,          // spacing between lines said by obstacles
   mysteryLast: '',    // last surprise, so it never repeats back to back
   bombFlash: 0,       // screen flash from bomb pickup
@@ -549,7 +552,27 @@ const QUIPS = {
       dino: ['CHA-CHING!', 'I AM RICH'], cat: ['TREATS FOR ALL', 'PURR-OFIT'],
       penguin: ['FISH FOR EVERYONE', 'HONK HONK $$$'], robot: ['PAYOUT DETECTED', '$$$.EXE'],
     },
+    giant: {
+      dino: ['I AM THE DINO-SAUR', 'ROAR... BIGGER'], cat: ['I AM A LION NOW', 'FEAR THE FLOOF'],
+      penguin: ['EMPEROR MODE', 'GIANT PENGUIN!'], robot: ['SIZE: XXL', 'UPSCALING...'],
+    },
+    taxi: {
+      dino: ['FREE RIDE!', 'WAIT, A BIRD?!'], cat: ['I HATE THIS', 'TELL NO ONE'],
+      penguin: ['I AM FLYING!', 'I KNEW IT!'], robot: ['FLIGHT MODE: ON', 'AIRBORNE.EXE'],
+    },
+    sneeze: {
+      dino: ['UH OH...', 'DUST...'], cat: ['FUR BALL!', 'ALLERGIC TO MYSELF'],
+      penguin: ['TOO COLD?', 'BRRR-CHOO'], robot: ['DUST DETECTED', 'FILTER CLOGGED'],
+    },
   },
+  sneezeAfter: {
+    dino: ['BLESS ME', 'EXCUSE ME'], cat: ['*SNIFF* MEOW', 'NO ONE SAW THAT'],
+    penguin: ['HONK. SORRY.', 'IT WAS THE COLD'], robot: ['SNEEZE.EXE DONE', 'RESETTING NOSE'],
+  },
+  giantEnd:  ['*PSSSHHH*', 'BACK TO SMOL', 'WHO SHRUNK ME?'],
+  stomp:     ['SQUISH!', 'FLAT!', 'PANCAKE!', 'OOF'],
+  taxiBird:  ['TAXI!', 'NO REFUNDS', 'MIND THE FEATHERS', 'FIVE STARS PLEASE'],
+  taxiBye:   ["THAT'LL BE 5 COINS", 'MIND THE GAP!', 'WATCH YOUR STEP'],
   // The obstacles have opinions about it too.
   cactusWither: ['*SIGH*', 'TELL MY MOM...', 'IT WAS THE SUN', 'NOT LIKE THIS', 'I NEEDED WATER'],
   cactusBurn:   ['HOT HOT HOT!', 'MY SPINES!', 'I AM SO TOAST', 'FIRE! FIRE!', 'SMELLS LIKE CHAR'],
@@ -846,6 +869,18 @@ function drawCactus(o) {
     // withering: droops sideways, shrinks into the sand and fades
     const t = o.dying / WITHER_TICKS;
     const cx = o.x + o.w / 2;
+    if (o.stomp) {
+      // squashed flat, then fades
+      const sy = Math.max(0.1, 1 - t * 8);
+      ctx.save();
+      ctx.globalAlpha = t > 0.6 ? 1 - (t - 0.6) / 0.4 : 1;
+      ctx.translate(cx, GROUND_Y);
+      ctx.scale(1 + 0.6 * (1 - sy), sy);
+      ctx.translate(-cx, -GROUND_Y);
+      drawCactusBody(o, o.y);
+      ctx.restore();
+      return;
+    }
     if (o.fire) {
       // burning: chars as it shrinks, with flames licking up the stem
       ctx.save();
@@ -1104,7 +1139,7 @@ function drawShadows() {
   const k = Math.max(0.35, 1 - lift / 150);                       // shrinks and fades as it jumps
   drawShadow(dino.x + (ducked ? 32 : 22), (ducked ? 58 : 38) * k, 0.26 * k);
   for (const o of obstacles) {
-    if (o.type !== 'bird') drawShadow(o.x + o.w / 2, o.w * 0.95, 0.2);
+    if (o.type !== 'bird' && !o.fling) drawShadow(o.x + o.w / 2, o.w * 0.95, 0.2);
   }
 }
 
@@ -1289,6 +1324,18 @@ const MYSTERY_FX = {
   haste:  { name: 'LIGHTNING!',   color: '#FFE45E', start() { game.hasteT = 300; } },
   party:  { name: 'CACTUS PARTY', color: '#FF3CAC', start() { game.partyT = 480; } },
   moon:   { name: 'MOON JUMP',    color: '#A0E7FF', start() { game.moonT = 600; } },
+  giant:  { name: 'GIANT MODE!', color: '#FF8C00', start() { game.giantT = 420; game.shake = 14; } },
+  taxi:   { name: 'BIRD TAXI',    color: '#FFD23F', start() {
+    game.taxiT = 360;
+    dino.jumping = true;
+    dino.vy = 0;
+    dino.ducking = false;
+    quip(pick(QUIPS.taxiBird), dino.x + 24, dino.y + STAND_H + 14, '#FFD23F', 10);
+  } },
+  sneeze: { name: 'ACHOO?',       color: '#A0E7FF', start() {
+    game.sneezeT = 90;
+    game.shieldT = Math.max(game.shieldT, 130);   // covered while winding up
+  } },
   jackpot:{ name: 'JACKPOT +75',  color: '#FFD700', start() {
     game.score += 75;
     for (let i = 0; i < 40; i++) {
@@ -1311,7 +1358,7 @@ function activateMystery() {
   fx.start();
   spawnSparkle(dino.x + 22, dino.y + 24);
   SFX.mystery();
-  reactGift(k, k === 'moon' || k === 'jackpot' ? 'happy' : 'wide');
+  reactGift(k, k === 'moon' || k === 'jackpot' || k === 'giant' ? 'happy' : k === 'sneeze' ? 'closed' : 'wide');
   quip(fx.name, headPos().x, headPos().y - 12, fx.color, 13);
 }
 
@@ -1351,6 +1398,14 @@ function updateMystery() {
   }
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
+    if (o.fling) {
+      o.x += o.fling.vx;
+      o.y += o.fling.vy;
+      o.fling.vy += 0.5;
+      o.fling.rot += o.fling.vrot;
+      if (o.x > W + 60 || o.y > H + 40) obstacles.splice(i, 1);
+      continue;
+    }
     if (!o.dying) continue;
     if (game.tick % (o.fire ? 2 : 4) === 0) {
       particles.push({
@@ -1373,6 +1428,56 @@ function updateMystery() {
     }
   }
   if (game.moonT > 0) game.moonT--;
+  if (game.giantT > 0) {
+    game.giantT--;
+    // every footstep thumps the ground
+    if (!dino.jumping && game.tick % 24 === 0) { game.shake = Math.max(game.shake, 5); spawnDust(dino.x + 14, GROUND_Y - 4); }
+    if (game.giantT === 0) {
+      game.shieldT = Math.max(game.shieldT, 45);
+      setFace('closed', 80);
+      quip(pick(QUIPS.giantEnd), headPos().x - 2, headPos().y - 12, '#FF8C00', 11);
+    }
+  }
+  if (game.taxiT > 0) {
+    game.taxiT--;
+    if (game.taxiT === 0) {
+      game.shieldT = Math.max(game.shieldT, 90);   // the drop-off is the dangerous part
+      quip(pick(QUIPS.taxiBye), dino.x + 24, dino.y + STAND_H + 14, '#FFD23F', 10);
+    }
+  }
+  if (game.sneezeT > 0) {
+    game.sneezeT--;
+    const t = game.sneezeT, h = headPos();
+    if (t === 76) { setFace('closed', 30); quip('AH...', h.x, h.y - 12, '#A0E7FF', 11); }
+    if (t === 58) { setFace('closed', 30); quip('AH... AH...', h.x, h.y - 12, '#A0E7FF', 13); }
+    if (t === 44) { setFace('closed', 30); quip('AAAAH...', h.x, h.y - 12, '#A0E7FF', 15); }
+    if (t === 34) {
+      // ACHOO: everything ahead is blown off the road
+      setFace('wide', 40);
+      dino.squash = 6;
+      game.shake = 16;
+      quip('ACHOO!', h.x + 30, h.y - 14, '#FFFFFF', 20);
+      const robot = game.character === 'robot';
+      for (let i = 0; i < 44; i++) {
+        particles.push({
+          x: dino.x + 44, y: dino.y + 14 + Math.random() * 10,
+          vx: 8 + Math.random() * 10, vy: (Math.random() - 0.5) * 2.5,
+          life: 18 + Math.random() * 10,
+          color: robot ? ['#FFD700', '#FFFFFF'][i % 2] : ['#FFFFFF', '#A0E7FF'][i % 2], size: 2 + (i % 2),
+        });
+      }
+      for (const o of obstacles) {
+        if (o.x > dino.x + 20 && !o.fling && !o.dying) {
+          o.fling = { vx: 10 + Math.random() * 8, vy: -7 - Math.random() * 5, rot: 0, vrot: (Math.random() - 0.5) * 0.6 };
+          game.score += 10;
+        }
+      }
+    }
+    if (t === 0) {
+      const lines = QUIPS.sneezeAfter[game.character] || QUIPS.sneezeAfter.dino;
+      quip(pick(lines), h.x, h.y - 12, '#FFFFFF', 11);
+    }
+  }
   if (game.hasteT > 0) {
     game.hasteT--;
     // flame trail along the ground and off the dino's back; it scrolls away with the road
@@ -1465,6 +1570,7 @@ seedStars();
 function jump() {
   if (game.state === 'idle') startGame();
   if (game.state === 'over') return;
+  if (game.taxiT > 0) return;   // the bird is in charge
   if (dino.jumping) {
     game.jumpBuf = JUMP_BUFFER;   // pressed a touch early: jump on landing
     return;
@@ -1876,6 +1982,7 @@ function restart() {
   game.shieldT = 0;
   game.slowT = 0;
   game.witherT = game.boomT = game.partyT = game.hasteT = game.moonT = 0;
+  game.giantT = game.taxiT = game.sneezeT = 0;
   game.chatCD = 0;
   game.bombFlash = 0;
   game.flashCD = 0;
@@ -2388,7 +2495,14 @@ function update() {
 
   // dino physics
   if (dino.squash > 0) dino.squash--;
-  if (dino.jumping) {
+  if (game.taxiT > 0) {
+    // carried: float up to cruising height, legs flailing, and bob along
+    const target = GROUND_Y - STAND_H - 120 + Math.sin(game.tick * 0.1) * 6;
+    dino.y += (target - dino.y) * 0.08;
+    dino.vy = 0;
+    dino.jumping = true;
+    dino.ducking = false;
+  } else if (dino.jumping) {
     const gliding = trait().glide && dino.jumpHeld && dino.vy > 0;
     dino.vy += gliding ? GLIDE_G : GRAVITY * (game.moonT > 0 ? MOON_GRAVITY : 1);
     if (gliding && dino.vy > GLIDE_MAX_FALL) dino.vy = GLIDE_MAX_FALL;
@@ -2493,11 +2607,12 @@ function update() {
 
   // collision
   const db = dinoBox();
+  const gdb = { x: dino.x - 18, y: dino.y + STAND_H - 88, w: 84, h: 88 };   // the giant's bigger body
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
-    if (o.dying || o.party) continue;   // wilted or dancing: harmless
-    if (rectsOverlap(db, obsBox(o))) {
-      if (game.shieldT > 0 || game.hasteT > 0) {
+    if (o.dying || o.party || o.fling || game.taxiT > 0) continue;   // wilted, dancing, blown away or flown over: harmless
+    if (rectsOverlap(game.giantT > 0 ? gdb : db, obsBox(o))) {
+      if (game.shieldT > 0 || game.hasteT > 0 || game.giantT > 0) {
         if (game.hasteT > 0 && o.type !== 'bird') {
           // the speedster is on fire: whatever it runs through burns down
           o.dying = 1;
@@ -2505,6 +2620,14 @@ function update() {
           game.score += 10;
           spawnFire(o.x + o.w / 2, o.y + o.h / 2, 16);
           if (game.chatCD <= 0) { game.chatCD = 40; quip(pick(QUIPS.cactusBurn), o.x + o.w / 2, o.y - 10, '#FF8C00', 9); }
+        } else if (game.giantT > 0 && o.type !== 'bird') {
+          // stomped flat like a pancake
+          o.dying = 1;
+          o.stomp = true;
+          game.score += 10;
+          game.shake = Math.max(game.shake, 9);
+          spawnDust(o.x + o.w / 2, GROUND_Y - 4);
+          if (game.chatCD <= 0) { game.chatCD = 40; quip(pick(QUIPS.stomp), o.x + o.w / 2, o.y - 10, '#FF8C00', 10); }
         } else {
           // shield shatters the obstacle, dino keeps running
           spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
@@ -2517,7 +2640,7 @@ function update() {
         gameOver();
         break;
       }
-    } else if (game.nearCD <= 0 && !o.near && game.shieldT <= 0 && game.hasteT <= 0 && !game.god) {
+    } else if (game.nearCD <= 0 && !o.near && game.shieldT <= 0 && game.hasteT <= 0 && game.giantT <= 0 && !game.god) {
       // close call: overlapping horizontally with a few units of clearance
       const ob = obsBox(o);
       if (db.x < ob.x + ob.w && db.x + db.w > ob.x) {
@@ -2596,7 +2719,15 @@ function render() {
 
   // obstacles
   for (const o of obstacles) {
-    if (o.type === 'bird') drawBird(o);
+    if (o.fling) {
+      const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(o.fling.rot);
+      ctx.translate(-cx, -cy);
+      if (o.type === 'bird') drawBird(o); else drawCactus(o);
+      ctx.restore();
+    } else if (o.type === 'bird') drawBird(o);
     else drawCactus(o);
   }
 
@@ -2604,7 +2735,24 @@ function render() {
   for (const g of gifts) drawGift(g);
 
   if (game.god) ctx.globalAlpha = 0.55;
-  drawPlayer();
+  if (game.taxiT > 0) {
+    // the taxi: a bird under the passenger, flapping hard
+    const flapUp = Math.floor(game.tick / 6) % 2 === 0;
+    blit(flapUp ? SPR.normal.bird.up : SPR.normal.bird.down, dino.x + 6, dino.y + STAND_H - 10);
+  }
+  if (game.giantT > 0) {
+    const gs = 1 + 0.9 * Math.min(1, (420 - game.giantT) / 20, game.giantT / 20);   // grows in, deflates out
+    const px0 = dino.x + 24, py0 = dino.y + STAND_H;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(px0, py0);
+    ctx.scale(gs, gs);
+    ctx.translate(-px0, -py0);
+    drawPlayer();
+    ctx.restore();
+  } else {
+    drawPlayer();
+  }
   ctx.globalAlpha = 1;
 
   // shield bubble
@@ -2656,7 +2804,7 @@ function render() {
   }
 
   // timer bar for the mystery gift's timed surprises (gold)
-  const timed = [[game.hasteT, 300], [game.partyT, 480], [game.moonT, 600], [game.witherT, 300], [game.boomT, 300]]
+  const timed = [[game.hasteT, 300], [game.partyT, 480], [game.moonT, 600], [game.witherT, 300], [game.boomT, 300], [game.giantT, 420], [game.taxiT, 360]]
     .reduce((best, p) => (p[0] / p[1] > best[0] / best[1] ? p : best), [0, 1]);
   if (timed[0] > 0) {
     const ducked = dino.ducking && !dino.jumping;
