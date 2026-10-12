@@ -37,7 +37,7 @@
       id: 'gifts', label: 'GIFTS', icon: '🎁',
       sections: [
         { h: '❤️ HEART', p: 'Wins back one lost heart. If your hearts are already full it gives +25 points instead.' },
-        { h: '💣 PINK bomb', p: 'Destroys every obstacle on screen.' },
+        { h: '💣 PINK bomb', p: 'Destroys every obstacle on screen, birds included, and takes down a bomber bird overhead.' },
         { h: '🛡️ BLUE shield', p: 'About 9 seconds of smashing through whatever you touch.' },
         { h: '⏳ GREEN slow-mo', p: 'About 6 seconds with the road at roughly half speed. You still move normally.' },
         { h: '🎁 GOLD surprise', p: 'One random surprise each time, never the same twice in a row:' },
