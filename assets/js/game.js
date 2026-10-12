@@ -371,6 +371,7 @@ const dino = {
 const obstacles = [];
 const gifts = [];
 const poops = [];   // droppings in flight
+let bomberRnd = Math.random;   // its own stream, so it never shifts the daily course's obstacles and gifts
 const clouds = [];
 const stars = [];
 const particles = [];
@@ -1306,7 +1307,8 @@ function spawnSparkle(x, y) {
 }
 
 // Points for destroying an obstacle, with a floating "+N" so it is visible.
-// Every way of destroying one goes through here, so they all pay the same.
+// Every way of destroying one on purpose goes through here, so they all pay the same.
+// (An obstacle smashed because it hit the runner is not a reward and is not scored.)
 function award(o) {
   const pts = o.type === 'bird' ? 15 : 10;
   game.score += pts;
@@ -1424,7 +1426,7 @@ function updateBomber() {
   if (game.mode === 'secret') return;
   if (!game.bomber) {
     if (--game.bomberCD > 0) return;
-    game.bomber = { x: W + 40, y: 34, dropped: false, tier: rnd() < 0.5 ? 'high' : 'low', said: false };
+    game.bomber = { x: W + 40, y: 34, dropped: false, tier: bomberRnd() < 0.5 ? 'high' : 'low' };
   }
   const b = game.bomber;
   b.x -= 3;
@@ -1441,7 +1443,7 @@ function updateBomber() {
   }
   if (b.x < -50) {
     game.bomber = null;
-    game.bomberCD = 960 + Math.floor(rnd() * 600);   // then one every 16-26s
+    game.bomberCD = 960 + Math.floor(bomberRnd() * 600);   // then one every 16-26s
   }
   for (let i = poops.length - 1; i >= 0; i--) {
     const p = poops[i];
@@ -1460,8 +1462,8 @@ function updateBomber() {
       } else if (game.god) {
         game.cheated = true;
       } else {
-        game.deathBy = 'poop';
-        hurtRunner(QUIPS.poopHit);
+        game.deathBy = 'poop';                    // read by gameOver() if this is the last heart
+        if (!hurtRunner(QUIPS.poopHit)) game.deathBy = '';
       }
       continue;
     }
@@ -2005,7 +2007,9 @@ function beginRun() {
   } else {
     rnd = Math.random;
   }
-  game.bomberCD = 900 + Math.floor(rnd() * 300);   // first one about 15-20s in; ticks and rnd only, so the daily course stays identical
+  // Daily: the same bomber schedule for everyone, from a generator separate from the course's.
+  bomberRnd = game.mode === 'daily' ? mulberry32(hashSeed('pixel-run:bomber:' + game.dailyDate)) : Math.random;
+  game.bomberCD = 900 + Math.floor(bomberRnd() * 300);   // first one about 15-20s in
   game.jumpBuf = 0;
   game.shake = 0;
   game.cheated = game.god;
@@ -2030,6 +2034,8 @@ const MEDALS = { copper: 200, bronze: 600, silver: 1500, gold: 3000, platinum: 5
 
 function gameOver() {
   game.state = 'over';
+  game.bomber = null;   // nothing frozen mid-air behind the results card
+  poops.length = 0;
   const secret = game.mode === 'secret';   // the Glitch Zone: nothing is recorded or submitted
   const cheated = game.cheated;   // god mode was used: record nothing
   let newBest;
@@ -2199,8 +2205,6 @@ function restart() {
   game.paused = false;
   game.resumeT = 0;
   pauseScreen.hidden = true;
-  game.bomber = null;
-  poops.length = 0;
   ovResult.hidden = true;
   ovAgain.hidden = true;
   overlay.classList.remove('is-over');
