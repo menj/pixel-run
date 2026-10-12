@@ -569,6 +569,18 @@
   ];
   var BOMB_PALETTE   = { b: '#FF477E', r: '#FFD700', k: '#C9184A', w: '#FFFFFF', '#': '#3A0A1A' };
   var SHIELD_PALETTE = { b: '#48CAE4', r: '#FFFFFF', k: '#06A0B8', '#': '#08313A' };
+  var HEART = [
+    '.......',
+    '.bb.bb.',
+    'bwbbbbb',
+    'bbbbbbb',
+    'bbbbbbk',
+    '.bbbbk.',
+    '..bbk..',
+    '...k...',
+    '.......',
+  ];
+  var LIFE_PALETTE = { b: '#FF3C6E', w: '#FFFFFF', k: '#C9184A', '#': '#3A0A1A' };
   var BOMBER_PALETTE = { v: '#4C9F70', m: '#2E6B4A', y: '#FFB703', w: '#FFFFFF', '#': '#14321F' };
   var MYSTERY_PALETTE = { b: '#FFD700', r: '#FF3CAC', k: '#C99700', '#': '#3A2A00' };
   var SLOW_PALETTE   = { b: '#6BE675', r: '#FFFFFF', k: '#2FB344', '#': '#0B3A14' };
@@ -788,6 +800,7 @@
     shield: { palette: SHIELD_PALETTE, frames: { box: SHIELD } },
     hamilton: { palette: HAM_PALETTE, frames: { up: hamilton('up'), mid: hamilton('mid'), down: hamilton('down') } },
     slow:   { palette: SLOW_PALETTE,   frames: { box: HOURGLASS } },
+    life:   { palette: LIFE_PALETTE,   frames: { box: HEART } },
     mystery:{ palette: MYSTERY_PALETTE,frames: { box: GIFT } },
     bomber: { palette: BOMBER_PALETTE, frames: { up: BIRD_UP, down: BIRD_DOWN } },
   };

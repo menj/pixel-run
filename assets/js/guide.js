@@ -19,7 +19,7 @@
         { h: 'Run as far as you can', p: 'Your score climbs the longer you survive, about 10 points a second, plus bonus points for destroying obstacles. Beat your best (HI) and climb the leaderboard.' },
         { h: 'Obstacles', p: 'Cacti stand on the ground: jump them. Birds fly in once you are moving fast: duck under them, or jump over the low ones. Touching one costs a heart.' },
         { h: 'Bird droppings', p: 'Now and then a green bird flies across the top and drops something on you. A "!" warns you first and the drop falls slowly: duck if it is coming at head height, jump if it is low. A hit costs a heart, like any obstacle. Shields, lightning and giant mode splat it harmlessly.' },
-        { h: 'Three lives', p: 'Classic and daily runs start with three hearts, shown beside the pause button. Hit an obstacle and you lose a heart, the obstacle is smashed and you blink for a moment while you recover. Lose all three and the run ends. Hearts come back for each new run.' },
+        { h: 'Five lives', p: 'Classic and daily runs start with five hearts, shown beside the pause button. Hit an obstacle and you lose a heart, the obstacle is smashed and you blink for a moment while you recover. Lose them all and the run ends. A pink heart gift wins one back. Hearts refill for each new run.' },
         { h: 'It keeps getting faster', p: 'Every obstacle you clear speeds the road up a little, until it hits a top speed. There are no separate levels: the road is the level, and speed is the difficulty.' },
         { h: 'What you are playing for', p: 'Your best score unlocks runners and story chapters, and every run can earn a medal on the game-over screen. Gifts along the way can save a run or make it very silly.' },
       ],
@@ -36,6 +36,7 @@
     {
       id: 'gifts', label: 'GIFTS', icon: '🎁',
       sections: [
+        { h: '❤️ HEART', p: 'Wins back one lost heart. If your hearts are already full it gives +25 points instead.' },
         { h: '💣 PINK bomb', p: 'Destroys every obstacle on screen.' },
         { h: '🛡️ BLUE shield', p: 'About 9 seconds of smashing through whatever you touch.' },
         { h: '⏳ GREEN slow-mo', p: 'About 6 seconds with the road at roughly half speed. You still move normally.' },

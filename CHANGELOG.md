@@ -35,11 +35,13 @@ project uses [Semantic Versioning](https://semver.org/).
   controls, gifts (including every surprise), medals, modes and runners. Medal
   scores and unlock marks are read from the game, so it stays accurate. Opening
   it mid-run pauses the game. Text is in `assets/js/guide.js`.
-- **Three lives**: hearts are shown beside the pause button (in the page, so a phone's smaller canvas never hides them). A hit costs a heart
-  (the obstacle is smashed, the runner blinks and is safe for two seconds)
-  instead of ending the run; losing the last heart ends it. The daily
-  challenge uses lives too, so it stays equal for everyone. The hidden level
-  stays one-life.
+- **Five lives**: hearts are shown beside the pause button (in the page, so a
+  phone's smaller canvas never hides them). A hit costs a heart (the obstacle
+  is smashed, the runner blinks and is safe for two seconds) instead of ending
+  the run; losing the last heart ends it. The daily challenge uses lives too,
+  so it stays equal for everyone. The hidden level stays one-life.
+- A pink **heart gift** (12% of gifts) wins back a lost heart, or gives +25
+  points when your hearts are already full.
 - **Bomber birds**: every 16 to 26 seconds (the first after about 15 seconds) a
   green bird crosses the top of the screen, shows a "!" and drops something on
   the runner. One at a time, slow and visible, and dodgeable: duck if it comes

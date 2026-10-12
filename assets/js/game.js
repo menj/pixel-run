@@ -199,6 +199,11 @@ const SFX = {
     [523, 659, 784, 1047].forEach((f, i) => tone({ freq: f, dur: 0.09, type: 'square', vol: 0.04, delay: i * 0.05 }));
     tone({ freq: 1568, freqEnd: 1175, dur: 0.2, type: 'triangle', vol: 0.04, delay: 0.22 });
   },
+  // Heart pickup: a warm rising two-note chime.
+  life:      () => {
+    tone({ freq: 523, freqEnd: 659, dur: 0.12, type: 'sine', vol: 0.06 });
+    tone({ freq: 784, freqEnd: 988, dur: 0.22, type: 'sine', vol: 0.06, delay: 0.1 });
+  },
   // Lost a heart: a short falling buzz.
   hurt:      () => {
     tone({ freq: 320, freqEnd: 90, dur: 0.22, type: 'sawtooth', vol: 0.08 });
@@ -276,7 +281,7 @@ const game = {
   bomberCD: 0,        // ticks until the next one
   deathBy: '',        // what ended the run, for a line on the game-over card
   lives: 3,           // hearts left; the run ends when the last one is lost
-  maxLives: 3,
+  maxLives: 5,
   invulT: 0,          // ticks of grace after losing a heart
   chatCD: 0,          // spacing between lines said by obstacles
   mysteryLast: '',    // last surprise, so it never repeats back to back
@@ -572,6 +577,10 @@ const QUIPS = {
     jackpot: {
       dino: ['CHA-CHING!', 'I AM RICH'], cat: ['TREATS FOR ALL', 'PURR-OFIT'],
       penguin: ['FISH FOR EVERYONE', 'HONK HONK $$$'], robot: ['PAYOUT DETECTED', '$$$.EXE'],
+    },
+    life: {
+      dino: ['HEART BOOST!', 'AWWW YEAH'], cat: ['NINTH LIFE?', 'PURR-FECT'],
+      penguin: ['WARM HEART', 'HONK <3'], robot: ['REPAIR COMPLETE', 'HP +1'],
     },
     giant: {
       dino: ['I AM THE DINO-SAUR', 'ROAR... BIGGER'], cat: ['I AM A LION NOW', 'FEAR THE FLOOF'],
@@ -998,9 +1007,10 @@ function drawBird(o) {
 
 /* ---------- pickups: gift boxes ---------- */
 function makeGift() {
-  // 40% bombs, 25% shields, 15% slow-mo, 20% mystery — bombs are the headline reward
+  // 35% bombs, 22% shields, 13% slow-mo, 18% mystery, 12% heart — bombs are the headline reward.
+  // Fixed odds (the heart is checked at pickup, not here) so a daily-challenge course is identical for everyone.
   const roll = rnd();
-  const kind = roll < 0.4 ? 'bomb' : roll < 0.65 ? 'shield' : roll < 0.8 ? 'slow' : 'mystery';
+  const kind = roll < 0.35 ? 'bomb' : roll < 0.57 ? 'shield' : roll < 0.70 ? 'slow' : roll < 0.88 ? 'mystery' : 'life';
   // float at jumpable heights so the player has to commit to grab them
   const tier = rnd();
   let y;
@@ -1327,6 +1337,17 @@ function activateBomb() {
   SFX.bomb();
   reactGift('bomb', 'wide');
   quip(pick(QUIPS.bomb), headPos().x, headPos().y - 12, '#FF477E', 13);
+}
+
+function activateLife() {
+  const full = game.lives >= game.maxLives;
+  if (!full) game.lives++;
+  else game.score += 25;   // nothing to heal: a small bonus instead
+  spawnSparkle(dino.x + 22, dino.y + 24);
+  SFX.life();
+  reactGift('life', 'happy');
+  const h = headPos();
+  quip(full ? 'FULL HEARTS +25' : '+1 LIFE', h.x - 4, h.y - 12, '#FF6F91', 12);
 }
 
 function activateShield() {
@@ -2892,6 +2913,7 @@ function update() {
     if (rectsOverlap(db2, gb)) {
       if (g.kind === 'bomb') activateBomb();
       else if (g.kind === 'slow') activateSlow();
+      else if (g.kind === 'life') activateLife();
       else if (g.kind === 'mystery') activateMystery();
       else activateShield();
       gifts.splice(i, 1);
