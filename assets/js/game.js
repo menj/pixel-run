@@ -1658,6 +1658,27 @@ function resumeGame() {
   game.resumeT = 180;   // 3-2-1 so the player is not dropped straight back into a cactus
 }
 function togglePause() { if (game.paused) resumeGame(); else pauseGame(); }
+// Hearts live in the page (not on the canvas) so they stay clear of the pause
+// button and keep their size when the canvas shrinks on a phone.
+const livesEl = document.getElementById('lives');
+let livesKey = '';
+function syncLivesUi() {
+  const show = game.state !== 'idle' && game.mode !== 'secret';
+  const key = show ? `${game.lives}/${game.maxLives}/${game.invulT > 0 ? 1 : 0}` : '';
+  if (key === livesKey) return;
+  livesKey = key;
+  livesEl.hidden = !show;
+  if (!show) return;
+  livesEl.textContent = '';
+  for (let n = 0; n < game.maxLives; n++) {
+    const h = document.createElement('span');
+    h.className = 'heart ' + (n < game.lives ? 'full' : 'empty');
+    h.textContent = '\u2665';
+    livesEl.appendChild(h);
+  }
+  livesEl.classList.toggle('hurt', game.invulT > 0);
+  livesEl.setAttribute('aria-label', `${game.lives} of ${game.maxLives} lives`);
+}
 // The pause button only shows while a run is actually going.
 function syncPauseUi() {
   const show = game.state === 'running' && !game.paused && game.resumeT === 0;
@@ -3034,20 +3055,6 @@ function render() {
 
   if (game.mode === 'secret') drawGlitchFx();
 
-  // hearts, beside the pause button
-  if (game.state !== 'idle' && game.mode !== 'secret') {
-    const HEART = ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'];
-    for (let n = 0; n < game.maxLives; n++) {
-      const full = n < game.lives;
-      const hx = 54 + n * 20, hy = 12;
-      const pulse = full && game.invulT > 0 && game.tick % 10 < 5;
-      ctx.fillStyle = full ? (pulse ? '#FFFFFF' : '#FF3C6E') : 'rgba(255,255,255,0.18)';
-      HEART.forEach((row, r) => {
-        for (let c = 0; c < 7; c++) if (row[c] === 'X') ctx.fillRect(hx + c * 2, hy + r * 2, 2, 2);
-      });
-    }
-  }
-
   // 3-2-1 after resuming
   if (game.resumeT > 0) {
     ctx.fillStyle = 'rgba(13,2,33,0.35)';
@@ -3092,6 +3099,7 @@ function loop(now) {
   }
   render();
   syncPauseUi();
+  syncLivesUi();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

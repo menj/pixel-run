@@ -35,7 +35,7 @@ project uses [Semantic Versioning](https://semver.org/).
   controls, gifts (including every surprise), medals, modes and runners. Medal
   scores and unlock marks are read from the game, so it stays accurate. Opening
   it mid-run pauses the game. Text is in `assets/js/guide.js`.
-- **Three lives**: hearts are shown beside the pause button. A hit costs a heart
+- **Three lives**: hearts are shown beside the pause button (in the page, so a phone's smaller canvas never hides them). A hit costs a heart
   (the obstacle is smashed, the runner blinks and is safe for two seconds)
   instead of ending the run; losing the last heart ends it. The daily
   challenge uses lives too, so it stays equal for everyone. The hidden level

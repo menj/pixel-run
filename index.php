@@ -239,6 +239,7 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
     </div>
     <canvas id="game" width="960" height="320"></canvas>
     <button id="pause-btn" class="pause-btn" type="button" aria-label="Pause (P)" title="Pause (P)" hidden>&#10074;&#10074;</button>
+    <div class="lives" id="lives" role="img" aria-label="Lives" hidden></div>
     <div class="pause-screen" id="pause-screen" role="dialog" aria-label="Paused" hidden>
       <div class="pause-card">
         <h2>PAUSED</h2>
