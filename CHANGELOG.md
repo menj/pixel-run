@@ -7,14 +7,14 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- Two new medal tiers on the game-over screen: **Copper** (100 points, below
-  Bronze) and **Platinum** (2000 points, above Gold). The tiers are now
-  Copper 100, Bronze 200, Silver 500, Gold 1000, Platinum 2000.
+- Two new medal tiers on the game-over screen: **Copper** (200 points, below
+  Bronze) and **Platinum** (5000 points, above Gold). The tiers are now
+  Copper 200, Bronze 600, Silver 1500, Gold 3000, Platinum 5000.
 - A hidden level. It is not listed anywhere in the interface: it has to be
   found. It plays a fixed course at one steady pace with no pickups, records
   nothing to the leaderboard, the best score, the unlocks or `arcade.stats`,
-  and keeps its own best time on the device (`pixel_run_glitch`). Platinum
-  gives the first hint, once.
+  and keeps its own best time on the device (`pixel_run_glitch`). Gold or
+  Platinum gives the first hint, once.
 - A third gift: **GREEN slow-mo** eases the world to 55% speed for about six seconds (you keep full control). Gifts are now 50% bomb, 30% shield, 20% slow-mo, and the controls legend uses matching icons (💣 🛡️ ⏳).
 - A **GOLD mystery gift** (20% of gifts) with one random surprise, never the
   same twice running, each with a line from the character and from the
@@ -30,6 +30,7 @@ project uses [Semantic Versioning](https://semver.org/).
   screen offers Resume and Restart, and resuming gives a 3-2-1 countdown.
   The game also pauses by itself when the tab is hidden. Paused time does not
   count towards the run's duration.
+- Each gift now has its own shape in the game: a bomb with a lit fuse, a shield and an hourglass. The mystery gift keeps the wrapped box with a ?.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 

@@ -1852,7 +1852,7 @@ function startGame() {
 }
 
 // Score thresholds for the game-over medal.
-const MEDALS = { copper: 100, bronze: 200, silver: 500, gold: 1000, platinum: 2000 };
+const MEDALS = { copper: 200, bronze: 600, silver: 1500, gold: 3000, platinum: 5000 };
 
 function gameOver() {
   game.state = 'over';
@@ -1932,10 +1932,13 @@ function gameOver() {
   }
   ovBest.hidden = !newBest;
   ovResult.hidden = cheated || secret || (!tier && !newBest);
-  // Platinum is the first time the game hints that something is hiding behind the title screen.
-  if (tier === 'platinum' && !cheated && !storageGet(PLAT_KEY)) {
+  // Gold or Platinum is the first time the game hints that something is hiding behind the title screen.
+  // Gold already hints it (Platinum is a long way off at 5000); only the Platinum medal opens it with taps.
+  if ((tier === 'platinum' || tier === 'gold') && !cheated && !storageGet(PLAT_KEY)) {
     storageSet(PLAT_KEY, '1');
-    ovSub.innerHTML += '<br><span class="accent-shield">Platinum! Something glitches behind the title screen. Type GLITCH there, or tap this medal three times.</span>';
+    ovSub.innerHTML += tier === 'platinum'
+      ? '<br><span class="accent-shield">Platinum! Something glitches behind the title screen. Type GLITCH there, or tap this medal three times.</span>'
+      : '<br><span class="accent-shield">Gold! Something glitches behind the title screen. Type GLITCH there.</span>';
   }
   if (cheated) ovSub.innerHTML += '<br><span class="accent-bomb">Admin run — not recorded</span>';
 
@@ -2800,7 +2803,15 @@ function render() {
   if (game.taxiT > 0) {
     // the taxi: Hamilton, flapping hard under the passenger
     const ham = SPR.normal.hamilton;
-    blit([ham.up, ham.mid, ham.down, ham.mid][Math.floor(game.tick / 5) % 4], dino.x + 2, dino.y + STAND_H - 1);
+    const hamImg = [ham.up, ham.mid, ham.down, ham.mid][Math.floor(game.tick / 5) % 4];
+    // drawn 1.4x so he is clearly the bigger bird, with the dino's feet on his back
+    const hx = dino.x + 40, hy = dino.y + STAND_H - 10;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(hx, hy);
+    ctx.scale(1.4, 1.4);
+    ctx.drawImage(hamImg, -hamImg.width / VIEW / 2, 0, hamImg.width / VIEW, hamImg.height / VIEW);
+    ctx.restore();
   }
   if (game.giantT > 0) {
     const gs = 1 + 0.9 * Math.min(1, (420 - game.giantT) / 20, game.giantT / 20);   // grows in, deflates out
