@@ -1189,8 +1189,8 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (isTypingTarget(e.target)) return; // Space, R and M must not fire while naming a score
+  if (e.code === 'Escape') leaveGlitchZone();   // works mid-run too
   if (game.state !== 'running') {
-    if (e.code === 'Escape') leaveGlitchZone();
     const letter = /^Key([A-Z])$/.exec(e.code);
     if (letter && !e.repeat) {
       glitchTyped = (glitchTyped + letter[1]).slice(-GLITCH_WORD.length);
@@ -1491,8 +1491,10 @@ function enterGlitchZone() {
   setPlayMode('secret');
 }
 function leaveGlitchZone() {
-  if (game.mode !== 'secret' || game.state === 'running') return;
+  if (game.mode !== 'secret') return;
+  const wasRunning = game.state === 'running';
   setPlayMode('normal');
+  if (wasRunning) restart();   // giving up mid-run is fine: nothing from the zone is recorded
   showModeNote('Back to the normal course');
 }
 
@@ -2003,6 +2005,7 @@ function setPlayMode(m) {
 if (dailyBtn) {
   dailyBtn.addEventListener('click', () => {
     if (game.state === 'running') {
+      if (game.mode === 'secret') { leaveGlitchZone(); return; }   // the touch way out, mid-run too
       showModeNote('Finish your run before switching modes');
       return;
     }
