@@ -26,11 +26,30 @@ Both pages load the same `assets/` files, so gameplay is identical.
 ## Playing
 
 Space or ↑ jumps (hold to jump higher), ↓ ducks, R restarts, M mutes. On
-touch screens use the on-screen buttons or tap the game. Each character has
+touch screens use the on-screen buttons or tap the game. Eeny and Meeny
+throw their legs wide while jumping (looks only; the hitbox is unchanged). Each character has
 a trait (Miny glides while jump is held, Moe starts with a shield). Miny
 and Moe unlock at best scores of 300 and 600. The 📅 DAILY button plays a
 shared seeded course that changes each UTC day, with its own leaderboard
 tab.
+
+## Medals
+
+The game-over screen awards a medal for the run's score: Copper at 50,
+Bronze at 100, Silver at 300, Gold at 600 and Platinum at 1000. The
+thresholds are `MEDALS` in `assets/js/game.js` and the colours are
+`--medal-*` in `assets/css/style.css`. Medals are shown on the device only:
+nothing about them is sent to the server, so no database change is needed.
+
+## Hidden level
+
+There is one hidden level. It is not listed in the interface, and finding it
+is part of the game, so how to enter it is deliberately left out of this
+file (the code is in `assets/js/game.js`, search for `Glitch`). What
+maintainers need to know: it is a fixed seeded course at one steady pace with
+no pickups, and it records **nothing** to the leaderboard, the best score,
+the unlocks or the shared `arcade.stats` record. It keeps its own best time
+in `pixel_run_glitch`, and runs made with the admin cheat are never saved.
 
 ## Admin and the cheat code
 
@@ -313,13 +332,19 @@ gesture, so the context is created on the first jump.
 
 The 🌐 / 📴 pill switches between leaderboard play and local play. In
 offline mode the game makes no network requests. Switching to online
-re-checks the API and falls back if it is unreachable.
+re-checks the API and falls back if it is unreachable. (In the code this is
+`setMode`; the 📅 DAILY toggle is the separate `setPlayMode`.)
 
 ## Browser storage
 
-The game keeps four keys in `localStorage`, all optional:
-`pixel_run_mode`, `pixel_run_muted`, `pixel_run_hi` (personal best) and
-`pixel_run_name` (last name entered). Nothing else is stored client-side.
+The game keeps these keys in `localStorage`, all optional:
+`pixel_run_mode`, `pixel_run_muted`, `pixel_run_hi` (personal best),
+`pixel_run_name` (last name entered), `pixel_run_story_seen`,
+`pixel_run_daily_<date>` (the daily challenge result), `pixel_run_glitch`
+(the hidden level's own record) and `pixel_run_platinum_seen` (a one-time
+hint flag). A finished run also updates the shared `arcade.stats` record
+when the game runs inside the arcade hub. Nothing else is stored
+client-side.
 
 ## Configuration reference (`includes/config.php`)
 
