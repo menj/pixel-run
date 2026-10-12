@@ -141,14 +141,23 @@ if ($publicUrl === '') {
     $publicUrl = ($https ? 'https' : 'http') . '://' . (string)($_SERVER['HTTP_HOST'] ?? 'localhost') . $baseDir;
 }
 $publicUrl = rtrim($publicUrl, '/') . '/';
+
+// One source for the text that appears in the tab title, the search snippet and the
+// schema.org markup, so they cannot drift apart. Title under 50 characters with the
+// hub suffix; description under 130 characters including its call to action.
+$hubName   = trim((string)($cfg['hub_name'] ?? ''));
+$hubUrl    = trim((string)($cfg['hub_url'] ?? ''));
+$hubUrl    = $hubUrl === '' ? '' : rtrim($hubUrl, '/') . '/';
+$pageTitle = 'Pixel Run: Free Pixel-Art Runner' . ($hubName !== '' ? ' | ' . $hubName : '');
+$pageDesc  = 'Dodge cacti, duck birds and grab power-ups in this free pixel-art runner. Beat the daily course. Play now in your browser!';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <base href="<?= h($baseDir) ?>">
-<title>Pixel Run: Free Pixel-Art Runner | Arcade Hub</title>
-<meta name="description" content="Dodge cacti, duck birds and grab power-ups in this free pixel-art runner. Beat the daily course. Play now in your browser!">
+<title><?= h($pageTitle) ?></title>
+<meta name="description" content="<?= h($pageDesc) ?>">
 <link rel="canonical" href="<?= h($publicUrl) ?>">
 <meta name="theme-color" content="#0d0221">
 <meta property="og:type" content="website">
@@ -165,28 +174,113 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
 <meta name="twitter:description" content="Dodge cacti, duck birds and beat the daily course with Eeny, Meeny, Miny or Moe.">
 <meta name="twitter:image" content="<?= h($publicUrl) ?>assets/img/og.png">
 <?php
-// Structured data (schema.org) so search engines know this is a free browser game.
+// Structured data (schema.org), one linked graph: the site (hub), this page, its share
+// image, the breadcrumb, and the game with its characters, items, quests and tips.
 // No ratings or reviews on purpose: those must come from real players, so Google's
 // Software App rich result (which needs them) is not claimed.
-$ldGame = [
-    '@context'            => 'https://schema.org',
-    '@type'               => ['WebApplication', 'VideoGame'],
+$gameJson = is_file(__DIR__ . '/game.json') ? (json_decode((string)file_get_contents(__DIR__ . '/game.json'), true) ?: []) : [];
+$ogImage  = $publicUrl . 'assets/img/og.png';
+$thing    = static fn(string $name, string $desc): array => ['@type' => 'Thing', 'name' => $name, 'description' => $desc];
+$modified = !empty($assetStamp) ? gmdate('c', (int)$assetStamp) : null;
+
+$ld = [];
+if ($hubUrl !== '') {
+    $ld[] = ['@type' => 'WebSite', '@id' => $hubUrl . '#website', 'name' => $hubName ?: 'Arcade', 'url' => $hubUrl, 'inLanguage' => 'en'];
+}
+$ld[] = array_filter([
+    '@type'              => 'WebPage',
+    '@id'                => $publicUrl . '#webpage',
+    'url'                => $publicUrl,
+    'name'               => $pageTitle,
+    'description'        => $pageDesc,
+    'inLanguage'         => 'en',
+    'isPartOf'           => $hubUrl !== '' ? ['@id' => $hubUrl . '#website'] : null,
+    'primaryImageOfPage' => ['@id' => $publicUrl . '#image'],
+    'breadcrumb'         => $hubUrl !== '' ? ['@id' => $publicUrl . '#breadcrumb'] : null,
+    'mainEntity'         => ['@id' => $publicUrl . '#game'],
+    'dateModified'       => $modified,
+]);
+$ld[] = [
+    '@type' => 'ImageObject', '@id' => $publicUrl . '#image', 'url' => $ogImage, 'contentUrl' => $ogImage,
+    'width' => 1200, 'height' => 630,
+    'caption' => 'Pixel Run: a pixel-art dino running across a desert at sunset',
+];
+if ($hubUrl !== '') {
+    $ld[] = [
+        '@type' => 'BreadcrumbList', '@id' => $publicUrl . '#breadcrumb',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => $hubName ?: 'Arcade', 'item' => $hubUrl],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Pixel Run', 'item' => $publicUrl],
+        ],
+    ];
+}
+$ld[] = array_filter([
+    '@type'               => ['VideoGame', 'WebApplication'],
+    '@id'                 => $publicUrl . '#game',
     'name'                => 'Pixel Run',
+    'alternateName'       => 'Pixel Run: Pick a hero. Outrun the desert.',
     'url'                 => $publicUrl,
-    'description'         => 'Dodge cacti, duck birds and outrun the desert with five hearts in this funny pixel-art runner. Grab bombs, shields and mystery gifts, and race the daily course. Free.',
-    'image'               => $publicUrl . 'assets/img/og.png',
+    'mainEntityOfPage'    => ['@id' => $publicUrl . '#webpage'],
+    'isPartOf'            => $hubUrl !== '' ? ['@id' => $hubUrl . '#website'] : null,
+    'description'         => (string)($gameJson['description'] ?? $pageDesc),
+    'image'               => ['@id' => $publicUrl . '#image'],
+    'screenshot'          => ['@id' => $publicUrl . '#image'],
     'applicationCategory' => 'GameApplication',
+    'applicationSubCategory' => 'Endless runner',
     'operatingSystem'     => 'Any (runs in a web browser)',
     'browserRequirements' => 'Requires JavaScript',
-    'genre'               => ['Endless runner', 'Arcade'],
-    'playMode'            => 'SinglePlayer',
+    'softwareVersion'     => (string)($cfg['version'] ?? ''),
+    'genre'               => ['Endless runner', 'Arcade', 'Pixel art'],
+    'keywords'            => implode(', ', (array)($gameJson['tags'] ?? [])),
+    'featureList'         => [
+        'Five hearts per run',
+        'Daily challenge: the same course for everyone',
+        'Four playable heroes, each with a skill and a story',
+        'Power-ups: bomb, shield, slow-mo, heart and mystery surprises',
+        'Copper to Platinum medals',
+        'In-game how-to-play guide',
+        'Optional online leaderboard',
+        'Works offline',
+    ],
+    'playMode'            => 'https://schema.org/SinglePlayer',
     'gamePlatform'        => 'Web browser',
+    'numberOfPlayers'     => ['@type' => 'QuantitativeValue', 'minValue' => 1, 'maxValue' => 1],
+    'gameLocation'        => ['@type' => 'Place', 'name' => 'A desert road that drifts from dawn to a starlit night'],
+    'characterAttribute'  => [
+        $thing('Eeny the dino', 'Balanced all-rounder.'),
+        $thing('Meeny the cat', 'Jumps 10% higher.'),
+        $thing('Miny the penguin', 'Glides while jump is held. Unlocked by best score.'),
+        $thing('Moe the bot', 'Starts every run with a shield. Unlocked by best score.'),
+    ],
+    'gameItem'            => [
+        $thing('Bomb gift', 'Destroys every obstacle on screen and takes down a bomber bird overhead.'),
+        $thing('Shield gift', 'Smashes whatever you touch for about nine seconds.'),
+        $thing('Slow-mo gift', 'Eases the road to about half speed for about six seconds.'),
+        $thing('Heart gift', 'Wins back one lost heart, or gives bonus points when your hearts are full.'),
+        $thing('Mystery gift', 'A random surprise: wither, bird boom, lightning, cactus party, moon jump, giant mode, Hamilton Taxi, sneeze or jackpot.'),
+    ],
+    'quest'               => [
+        $thing('Daily challenge', 'Race the same seeded course as everyone else, once a day.'),
+        $thing('Earn medals', 'Score high enough for Copper, Bronze, Silver, Gold and Platinum medals.'),
+        $thing('Unlock heroes and stories', 'Raise your best score to unlock more heroes and read their stories.'),
+    ],
+    'gameTip'             => [
+        ['@type' => 'CreativeWork', 'name' => 'Jumping', 'text' => 'Hold jump for a higher jump.'],
+        ['@type' => 'CreativeWork', 'name' => 'Birds', 'text' => 'Duck under head-height birds and jump the low ones.'],
+        ['@type' => 'CreativeWork', 'name' => 'Bird droppings', 'text' => 'Watch for the "!" warning: duck a head-height drop, jump a low one.'],
+    ],
+    'softwareHelp'        => ['@type' => 'CreativeWork', 'name' => 'How to play', 'url' => $publicUrl . '#about'],
     'inLanguage'          => 'en',
     'isAccessibleForFree' => true,
-    'offers'              => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'USD'],
-];
+    'offers'              => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'USD', 'availability' => 'https://schema.org/InStock', 'url' => $publicUrl],
+    'potentialAction'     => [
+        '@type'  => 'PlayGameAction',
+        'target' => ['@type' => 'EntryPoint', 'urlTemplate' => $publicUrl,
+                     'actionPlatform' => ['https://schema.org/DesktopWebPlatform', 'https://schema.org/MobileWebPlatform']],
+    ],
+], static fn($v) => $v !== null && $v !== '');
 ?>
-<script type="application/ld+json"><?= json_encode($ldGame, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<script type="application/ld+json"><?= json_encode(['@context' => 'https://schema.org', '@graph' => $ld], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -384,7 +478,7 @@ $ldGame = [
     <span><strong class="accent-mystery"><span class="pu-icon">🎁</span> GOLD</strong> surprise</span>
   </div>
 
-  <section class="about" aria-labelledby="about-title">
+  <section class="about" id="about" aria-labelledby="about-title">
     <h2 id="about-title">About Pixel Run</h2>
     <p>Pixel Run is a free pixel-art endless runner you play in your browser. Sprint across a desert that drifts from dawn to a starlit night, jump the cacti and duck the birds as the pace climbs. You get five hearts, so one mistake does not end the run.</p>
     <h2>How to play</h2>
