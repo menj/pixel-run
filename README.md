@@ -35,8 +35,8 @@ tab.
 
 ## Medals
 
-The game-over screen awards a medal for the run's score: Copper at 50,
-Bronze at 100, Silver at 300, Gold at 600 and Platinum at 1000. The
+The game-over screen awards a medal for the run's score: Copper at 100,
+Bronze at 200, Silver at 500, Gold at 1000 and Platinum at 2000. The
 thresholds are `MEDALS` in `assets/js/game.js` and the colours are
 `--medal-*` in `assets/css/style.css`. Medals are shown on the device only:
 nothing about them is sent to the server, so no database change is needed.
