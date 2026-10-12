@@ -55,6 +55,10 @@ $config = [
     //   '../' or a full https:// address). Leave empty for no link.
     'public_url'         => '',
     'arcade_url'         => '',
+    // The hub's name and home address, for the page's schema.org markup
+    // (site and breadcrumb). Leave hub_url empty to leave them out.
+    'hub_name'           => 'Arcade Hub',
+    'hub_url'            => 'https://menj.buzz/arcade/',
 
     // Hash of the admin password (see admin.php). Empty means admin mode is
     // off. Set it through install.php, or with password_hash() by hand.

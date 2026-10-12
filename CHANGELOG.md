@@ -51,11 +51,16 @@ project uses [Semantic Versioning](https://semver.org/).
   lightning and giant mode splat it harmlessly. Never in the hidden level.
 - Page title is now "Pixel Run: Free Pixel-Art Runner | Arcade Hub" (45 characters, with the Arcade Hub suffix).
 - Meta description is now 122 characters (under 130) and ends with a call to action: "Play now in your browser!"
-- Search-friendly page (from Google's SEO starter guide): a canonical link, social
-  card tags with an image description, schema.org `WebApplication`/`VideoGame`
-  markup (no ratings or reviews, on purpose), and a visible "About Pixel Run"
-  text section under the game (what it is, how to play, power-ups, heroes) so
-  the page has real, crawlable text and a proper heading outline.
+- Search-friendly page (from Google's SEO starter guide and schema.org): a canonical
+  link, social card tags with an image description, and a visible "About Pixel
+  Run" text section with a proper heading outline. The schema.org markup is one
+  linked graph, checked against schema.org's vocabulary: the hub site
+  (`WebSite`), the page (`WebPage`), its share image (`ImageObject`), a
+  `BreadcrumbList`, and the game itself (`VideoGame` and `WebApplication`) with
+  its heroes (`characterAttribute`), power-ups (`gameItem`), quests, tips,
+  feature list, help link, free offer and a `PlayGameAction`. No ratings or
+  reviews, on purpose. The hub name and address are `hub_name` and `hub_url`
+  in `includes/config.php`.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 
