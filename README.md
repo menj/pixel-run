@@ -339,7 +339,8 @@ re-checks the API and falls back if it is unreachable. (In the code this is
 
 The game keeps these keys in `localStorage`, all optional:
 `pixel_run_mode`, `pixel_run_muted`, `pixel_run_hi` (personal best),
-`pixel_run_name` (last name entered), `pixel_run_story_seen`,
+`pixel_run_name` and the shared `arcade_name` (the name of the last
+successfully submitted score), `pixel_run_story_seen`,
 `pixel_run_daily_<date>` (the daily challenge result), `pixel_run_glitch`
 (the hidden level's own record) and `pixel_run_platinum_seen` (a one-time
 hint flag). A finished run also updates the shared `arcade.stats` record
