@@ -50,6 +50,7 @@ project uses [Semantic Versioning](https://semver.org/).
   at head height, jump if it comes low. A hit costs a heart; shields,
   lightning and giant mode splat it harmlessly. Never in the hidden level.
 - Page title is now "Pixel Run: Free Pixel-Art Runner | Arcade Hub" (45 characters, with the Arcade Hub suffix).
+- Meta description is now 122 characters (under 130) and ends with a call to action: "Play now in your browser!"
 - Search-friendly page (from Google's SEO starter guide): a canonical link, social
   card tags with an image description, schema.org `WebApplication`/`VideoGame`
   markup (no ratings or reviews, on purpose), and a visible "About Pixel Run"
