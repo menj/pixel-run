@@ -73,6 +73,23 @@
       '...........ddddd......',
       '...........ddddd......',
     ],
+    // in the air: legs thrown wide going up, reaching down for the ground coming back
+    jumpUp: [
+      '.....dddd..dddd.......',
+      '....dddd....dddd......',
+      '...dddd......dddd.....',
+      '..dddd.........dddd...',
+      '..ddddd.........ddddd.',
+      '..ddddd.........ddddd.',
+    ],
+    jumpDown: [
+      '.....dddd..dddd.......',
+      '.....dddd...dddd......',
+      '....dddd.....dddd.....',
+      '....dddd.....dddd.....',
+      '...ddddd.....ddddd....',
+      '...ddddd.....ddddd....',
+    ],
   };
 
   function dinoFrame(legs) {
@@ -156,6 +173,22 @@
       '.....llll....oo.......',
       '............llll......',
       '............llll......',
+    ],
+    jumpUp: [
+      '......oo.....oo.......',
+      '.....oo.......oo......',
+      '....oo.........oo.....',
+      '...oo...........oo....',
+      '..llll..........llll..',
+      '..llll..........llll..',
+    ],
+    jumpDown: [
+      '......oo.....oo.......',
+      '......oo......oo......',
+      '.....oo.......oo......',
+      '.....oo........oo.....',
+      '....llll.......llll...',
+      '....llll.......llll...',
     ],
   };
 
@@ -543,6 +576,8 @@
         stand: dinoFrame(DINO_LEGS.stand),
         runA:  dinoFrame(DINO_LEGS.runA),
         runB:  dinoFrame(DINO_LEGS.runB),
+        jumpUp:   dinoFrame(DINO_LEGS.jumpUp),
+        jumpDown: dinoFrame(DINO_LEGS.jumpDown),
         duckA: DINO_DUCK_BODY.concat(DINO_DUCK_LEGS.a),
         duckB: DINO_DUCK_BODY.concat(DINO_DUCK_LEGS.b),
       },
@@ -554,6 +589,8 @@
         stand: CAT_BODY.concat(CAT_LEGS.stand),
         runA:  CAT_BODY.concat(CAT_LEGS.runA),
         runB:  CAT_BODY.concat(CAT_LEGS.runB),
+        jumpUp:   CAT_BODY.concat(CAT_LEGS.jumpUp),
+        jumpDown: CAT_BODY.concat(CAT_LEGS.jumpDown),
         duckA: CAT_DUCK_BODY.concat(CAT_DUCK_LEGS.a),
         duckB: CAT_DUCK_BODY.concat(CAT_DUCK_LEGS.b),
       },

@@ -251,11 +251,12 @@ const game = {
   jumpBuf: 0,         // ticks a too-early jump press stays queued
   god: false,         // admin cheat: cannot die (admin sessions only)
   cheated: false,     // this run used god mode; it is never recorded
-  mode: 'normal',     // 'normal' | 'daily'
+  mode: 'normal',     // 'normal' | 'daily' | 'secret' (the Glitch Zone)
   dailyDate: '',      // UTC date (YYYY-MM-DD) of the current daily course
   dailyBest: 0,       // best score on today's course, this device
   overTimer: 0,       // pending game-over panel timeout id
   nextMilestone: 100, // next score that triggers the milestone flash
+  spawned: 0,         // Glitch Zone: obstacles sent so far
 };
 
 /* ---------- gameplay RNG (seeded for the daily challenge) ---------- */
@@ -293,7 +294,7 @@ const CHARACTERS = {
   robot:   { name: 'Moe',     blurb: 'Starts with a shield', unlock: 600, startShield: 180 },
 };
 function trait() {
-  if (game.mode === 'daily') return CHARACTERS.dino;
+  if (game.mode === 'daily' || game.mode === 'secret') return CHARACTERS.dino;
   return CHARACTERS[game.character] || CHARACTERS.dino;
 }
 function isUnlocked(id) {
@@ -372,6 +373,7 @@ const skyStops = [
 ];
 
 function currentSky() {
+  if (game.mode === 'secret') return { top: '#12002b', mid: '#2a0a4f', bot: '#5a0f7a', isNight: true };   // the Glitch Zone is always night
   const p = dayPhase() * skyStops.length;
   const i = Math.floor(p) % skyStops.length;
   const j = (i + 1) % skyStops.length;
@@ -715,7 +717,8 @@ function drawPlayer() {
     return;
   }
   let f;
-  if (game.state !== 'running' || dino.jumping) f = frames.stand;
+  if (game.state === 'running' && dino.jumping && frames.jumpUp) f = dino.vy < 0 ? frames.jumpUp : frames.jumpDown;   // legs spread in the air (looks only: the hitbox never changes)
+  else if (game.state !== 'running' || dino.jumping) f = frames.stand;
   else f = phaseA ? frames.runA : frames.runB;
   const bob = game.state === 'idle' ? Math.round(Math.sin(game.tick / 12) * 3) : 0;
   let sx = 1, sy = 1;
@@ -949,7 +952,7 @@ function drawSky(sky) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, GROUND_Y);
 
-  const phase = dayPhase();
+  const phase = game.mode === 'secret' ? 0.75 : dayPhase();   // the Glitch Zone is always night: a moon, never a sun
 
   // sun / moon arc
   const arcX = W * 0.15 + (W * 0.7) * ((phase * 2) % 1);
@@ -1186,6 +1189,16 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (isTypingTarget(e.target)) return; // Space, R and M must not fire while naming a score
+  if (e.code === 'Escape') leaveGlitchZone();   // works mid-run too
+  if (game.state !== 'running') {
+    const letter = /^Key([A-Z])$/.exec(e.code);
+    if (letter && !e.repeat) {
+      glitchTyped = (glitchTyped + letter[1]).slice(-GLITCH_WORD.length);
+      if (glitchTyped === GLITCH_WORD) { glitchTyped = ''; enterGlitchZone(); return; }
+    } else if (!letter) {
+      glitchTyped = '';
+    }
+  }
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     e.preventDefault();
     if (e.repeat) return;          // key auto-repeat must not queue jumps
@@ -1215,6 +1228,8 @@ window.addEventListener('pointercancel', jumpRelease);
 
 /* touch: coarse pointers get on-screen buttons and tap wording */
 const COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+const TITLE_DEFAULT = ovTitle.textContent;
+function idleTitle() { return document.documentElement.classList.contains('touch-ui') ? 'TAP TO PLAY' : TITLE_DEFAULT; }
 if (COARSE) ovTitle.textContent = 'TAP TO PLAY';
 
 // Hybrid devices (touch laptops, tablets with a keyboard) report a fine
@@ -1244,10 +1259,17 @@ function unlockAudio() {
 // game over when there is no name form to protect from stray taps.
 overlay.addEventListener('pointerdown', (e) => {
   if (e.target.closest('#ov-submit, #ov-again, .ov-more')) return;
+  if (e.target.closest('#ov-medal') && ovMedal.dataset.tier === 'platinum') return;   // its taps are the way to the secret
   if (game.state === 'idle') jumpPress();
   else if (game.state === 'over' && ovSubmit.hidden) restart();
 });
 ovAgain.addEventListener('click', () => { if (game.state === 'over') restart(); });
+ovMedal.addEventListener('click', () => {
+  if (ovMedal.dataset.tier !== 'platinum' || game.state !== 'over') return;
+  const now = Date.now();
+  medalTaps = medalTaps.filter((t) => now - t < 2500).concat(now);
+  if (medalTaps.length >= 3) { medalTaps = []; enterGlitchZone(); }
+});
 
 const touchJump = document.getElementById('touch-jump');
 const touchDuck = document.getElementById('touch-duck');
@@ -1283,7 +1305,10 @@ if (touchJump && touchDuck) {
 function idleBlurb() {
   if (game.state !== 'idle') return;
   const c = trait();
-  ovSub.textContent = game.mode === 'daily'
+  ovTitle.textContent = game.mode === 'secret' ? 'GLITCH ZONE' : (idleTitle());
+  ovSub.textContent = game.mode === 'secret'
+    ? `${GLITCH_OBSTACLES} obstacles, one steady pace, no gifts. ${document.documentElement.classList.contains('touch-ui') ? 'DAILY leaves' : 'Esc leaves'}`
+    : game.mode === 'daily'
     ? 'Daily challenge: everyone gets the same course'
     : `${CHARACTERS[game.character].name} · ${c.blurb}`;
 }
@@ -1319,6 +1344,12 @@ function beginRun() {
     game.dailyDate = utcDate();
     game.dailyBest = parseInt(storageGet(DAILY_KEY + game.dailyDate) || '0', 10) || 0;
     rnd = mulberry32(hashSeed('pixel-run:' + game.dailyDate));
+  } else if (game.mode === 'secret') {
+    rnd = mulberry32(hashSeed('pixel-run:glitch-zone'));   // the same course every time
+    game.speed = GLITCH_SPEED;
+    game.spawned = 0;
+    game.cleared = 0;
+    game.giftCD = 1e9;                                      // no gifts in here
   } else {
     rnd = Math.random;
   }
@@ -1342,15 +1373,16 @@ function startGame() {
 }
 
 // Score thresholds for the game-over medal.
-const MEDALS = { bronze: 100, silver: 300, gold: 600 };
+const MEDALS = { copper: 50, bronze: 100, silver: 300, gold: 600, platinum: 1000 };
 
 function gameOver() {
   game.state = 'over';
+  const secret = game.mode === 'secret';   // the Glitch Zone: nothing is recorded or submitted
   const cheated = game.cheated;   // god mode was used: record nothing
   let newBest;
   let unlocked = [];
   const newChapters = [];
-  if (cheated) {
+  if (cheated || secret) {
     newBest = false;
   } else if (game.mode === 'daily') {
     newBest = game.score > game.dailyBest;
@@ -1379,15 +1411,16 @@ function gameOver() {
   }
   game.shake = 14;
   reactHit();
-  if (!cheated) arcadeRecord(game.score);
+  if (!cheated && !secret) arcadeRecord(game.score);
   spawnExplosion(dino.x + 24, dino.y + 24);
   dino.hurtFlash = 30;
   game.hitFlash = 10;
   SFX.gameover();
-  ovTitle.textContent = 'GAME OVER';
+  ovTitle.textContent = secret ? 'GLITCHED' : 'GAME OVER';
   ovSub.innerHTML = COARSE
     ? `Score <span class="accent-gold">${pad(game.score)}</span>`
     : `Score <span class="accent-gold">${pad(game.score)}</span> · press <span class="key">R</span> or tap to retry`;
+  if (secret) ovSub.innerHTML = `Cleared <span class="accent-gold">${game.cleared}</span> of ${GLITCH_OBSTACLES} · ${glitchKeys()}`;
   if (unlocked.length) ovSub.innerHTML += `<br><span class="accent-gold">${unlocked.join(' & ')} unlocked!</span>`;
   if (newChapters.length) ovSub.innerHTML += `<br><span class="accent-gold">📖 New chapter: ${escapeHtml(newChapters.slice(0, 2).join(' · '))}</span>`;
   if (game.mode === 'daily') ovSub.innerHTML += `<br>Daily ${game.dailyDate}`;
@@ -1395,7 +1428,7 @@ function gameOver() {
   ovAgain.hidden = false;
 
   // Submission UI: only offer in online mode with a working API.
-  if (gameMode === 'online' && API_AVAILABLE && game.score > 0 && !cheated) {
+  if (gameMode === 'online' && API_AVAILABLE && game.score > 0 && !cheated && !secret) {
     ovSubmit.hidden = false;
     ovStatus.textContent = '';
     ovStatus.classList.remove('error');
@@ -1407,21 +1440,101 @@ function gameOver() {
     ovSubmit.hidden = true;
   }
 
-  const tier = game.score >= MEDALS.gold ? 'gold'
+  const tier = secret ? ''
+             : game.score >= MEDALS.platinum ? 'platinum'
+             : game.score >= MEDALS.gold ? 'gold'
              : game.score >= MEDALS.silver ? 'silver'
-             : game.score >= MEDALS.bronze ? 'bronze' : '';
+             : game.score >= MEDALS.bronze ? 'bronze'
+             : game.score >= MEDALS.copper ? 'copper' : '';
   ovMedal.hidden = !tier || cheated;
   if (tier) {
     ovMedal.dataset.tier = tier;
     ovMedal.querySelector('.medal-label').textContent = tier.toUpperCase();
   }
   ovBest.hidden = !newBest;
-  ovResult.hidden = cheated || (!tier && !newBest);
+  ovResult.hidden = cheated || secret || (!tier && !newBest);
+  // Platinum is the first time the game hints that something is hiding behind the title screen.
+  if (tier === 'platinum' && !cheated && !storageGet(PLAT_KEY)) {
+    storageSet(PLAT_KEY, '1');
+    ovSub.innerHTML += '<br><span class="accent-shield">Platinum! Something glitches behind the title screen. Type GLITCH there, or tap this medal three times.</span>';
+  }
   if (cheated) ovSub.innerHTML += '<br><span class="accent-bomb">Admin run — not recorded</span>';
 
   // Brief hit-stop so the collision registers before the panel appears.
   clearTimeout(game.overTimer);
   game.overTimer = setTimeout(() => overlay.classList.remove('hidden'), 1100);
+}
+
+/* ---------- the secret level: the Glitch Zone ---------- */
+// A short, fixed course (the same obstacles every time) at one steady pace,
+// with no gifts and no leaderboard. Find it by typing GLITCH on the title
+// screen, or by tapping a Platinum medal three times. Esc leaves.
+const GLITCH_KEY = 'pixel_run_glitch';   // JSON { clears, bestMs }
+const PLAT_KEY = 'pixel_run_platinum_seen';
+const GLITCH_SPEED = 7;
+const GLITCH_OBSTACLES = 40;
+const GLITCH_WORD = 'GLITCH';
+function glitchKeys() { return document.documentElement.classList.contains('touch-ui') ? 'tap to retry · DAILY leaves' : 'R to retry · Esc to leave'; }
+const REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+let glitchTyped = '';
+let medalTaps = [];
+
+function glitchRecord() {
+  try { return JSON.parse(storageGet(GLITCH_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+function secs(ms) { return (ms / 1000).toFixed(1) + 's'; }
+
+function enterGlitchZone() {
+  if (game.state === 'running' || game.mode === 'secret') return;
+  SFX.milestone();
+  showModeNote('Secret found: the Glitch Zone. ' + (document.documentElement.classList.contains('touch-ui') ? 'DAILY leaves.' : 'Esc leaves.'), true);
+  setPlayMode('secret');
+}
+function leaveGlitchZone() {
+  if (game.mode !== 'secret') return;
+  const wasRunning = game.state === 'running';
+  setPlayMode('normal');
+  if (wasRunning) restart();   // giving up mid-run is fine: nothing from the zone is recorded
+  showModeNote('Back to the normal course');
+}
+
+function glitchCleared() {
+  game.state = 'over';
+  const ms = Date.now() - game.runStart;
+  const rec = glitchRecord();
+  const first = !rec.clears;
+  const faster = !rec.bestMs || ms < rec.bestMs;
+  const best = faster ? ms : rec.bestMs;
+  // a god-mode run proves nothing, so it is not kept
+  if (!game.cheated) storageSet(GLITCH_KEY, JSON.stringify({ clears: (rec.clears || 0) + 1, bestMs: best }));
+  SFX.milestone();
+  setFace('happy', 120);
+  game.flashCD = 40;
+  ovTitle.textContent = 'ZONE CLEARED';
+  ovSub.innerHTML = `Time <span class="accent-gold">${secs(ms)}</span>`
+    + (game.cheated && !rec.bestMs ? '' : ` · best ${secs(game.cheated ? rec.bestMs : best)}`)
+    + (first && !game.cheated ? '<br><span class="accent-gold">The Glitch is a little less lonely.</span>' : '')
+    + `<br>${glitchKeys()}`;
+  overlay.classList.add('is-over');
+  ovAgain.hidden = false;
+  ovSubmit.hidden = true;
+  ovMedal.hidden = false;
+  ovMedal.dataset.tier = 'glitch';
+  ovMedal.querySelector('.medal-label').textContent = 'GLITCH';
+  ovBest.hidden = !(faster && !game.cheated);
+  ovResult.hidden = false;
+  clearTimeout(game.overTimer);
+  game.overTimer = setTimeout(() => overlay.classList.remove('hidden'), 700);
+}
+
+// Scanlines always; a torn strip of the picture slides sideways now and then (not for reduced-motion players).
+function drawGlitchFx() {
+  ctx.fillStyle = 'rgba(0,255,230,0.05)';
+  for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
+  if (REDUCE_MOTION || game.state !== 'running' || game.tick % 90 >= 6) return;
+  const y = 20 + ((game.tick * 37) % (H - 80));
+  const h = 6 + (game.tick % 5) * 3;
+  ctx.drawImage(canvas, 0, y * VIEW, canvas.width, h * VIEW, ((game.tick % 3) - 1) * 10, y, W, h);
 }
 
 function restart() {
@@ -1436,6 +1549,7 @@ function restart() {
   particles.length = 0;
   game.speed = 2.5;
   game.cleared = 0;
+  game.spawned = 0;
   game.score = 0;
   game.tick = 0;
   game.spawnCD = 60;
@@ -1877,8 +1991,9 @@ idleBlurb();
 // Same seeded course for everyone on a given UTC date, traits switched off,
 // and its own leaderboard tab. Works offline too (best is kept on-device).
 const dailyBtn = document.getElementById('daily-btn');
-function setMode(m) {
+function setPlayMode(m) {
   game.mode = m;
+  document.documentElement.classList.toggle('glitch-zone', m === 'secret');
   game.dailyDate = utcDate();
   game.dailyBest = parseInt(storageGet(DAILY_KEY + game.dailyDate) || '0', 10) || 0;
   if (dailyBtn) {
@@ -1886,15 +2001,16 @@ function setMode(m) {
     dailyBtn.setAttribute('aria-pressed', m === 'daily' ? 'true' : 'false');
   }
   if (game.state === 'over') restart();
-  else idleBlurb();
+  else { game.speed = 2.5; idleBlurb(); }
 }
 if (dailyBtn) {
   dailyBtn.addEventListener('click', () => {
     if (game.state === 'running') {
+      if (game.mode === 'secret') { leaveGlitchZone(); return; }   // the touch way out, mid-run too
       showModeNote('Finish your run before switching modes');
       return;
     }
-    setMode(game.mode === 'daily' ? 'normal' : 'daily');
+    setPlayMode(game.mode === 'daily' || game.mode === 'secret' ? 'normal' : 'daily');   // from the Glitch Zone this is also the touch way out
   });
 }
 
@@ -1940,12 +2056,13 @@ function update() {
     return;
   }
 
-  // speed ramp
-  if (game.speed < game.maxSpeed) game.speed += game.speedGrow;
+  // speed ramp (the Glitch Zone keeps one fixed pace)
+  if (game.mode !== 'secret' && game.speed < game.maxSpeed) game.speed += game.speedGrow;
   game.scroll += game.speed;
 
-  // score
-  if (game.tick % 6 === 0) game.score++;
+  // score (in the Glitch Zone the score is simply how many obstacles are behind you)
+  if (game.mode === 'secret') game.score = game.cleared;
+  else if (game.tick % 6 === 0) game.score++;
 
   // dino physics
   if (dino.squash > 0) dino.squash--;
@@ -1968,9 +2085,21 @@ function update() {
   }
   if (game.jumpBuf > 0) game.jumpBuf--;
 
+  // Glitch Zone: a fixed number of obstacles, then the way out
+  if (game.mode === 'secret') {
+    if (game.spawned < GLITCH_OBSTACLES) {
+      game.spawnCD--;
+      if (game.spawnCD <= 0) {
+        obstacles.push(rnd() < 0.3 ? makeBird() : makeCactus());
+        game.spawned++;
+        game.spawnCD = 70 + Math.floor(rnd() * 50);
+      }
+    }
+  }
+
   // obstacle spawn
-  game.spawnCD--;
-  if (game.spawnCD <= 0) {
+  if (game.mode !== 'secret') game.spawnCD--;
+  if (game.mode !== 'secret' && game.spawnCD <= 0) {
     const minGap = Math.max(40, 90 - game.speed * 2);
     const r = rnd();
     let o;
@@ -1997,7 +2126,7 @@ function update() {
     if (obstacles[i].x + obstacles[i].w < 0) {
       // count it as cleared and nudge the speed up a notch
       game.cleared++;
-      if (game.speed < game.maxSpeed) {
+      if (game.mode !== 'secret' && game.speed < game.maxSpeed) {
         game.speed = Math.min(game.maxSpeed, game.speed + game.speedStep);
       }
       obstacles.splice(i, 1);
@@ -2064,6 +2193,12 @@ function update() {
         }
       }
     }
+  }
+
+  // Glitch Zone: every obstacle sent and passed means the way out is open
+  if (game.mode === 'secret' && game.spawned >= GLITCH_OBSTACLES && game.cleared >= GLITCH_OBSTACLES) {
+    glitchCleared();
+    return;
   }
 
   // shield countdown
@@ -2186,6 +2321,8 @@ function render() {
     ctx.fillStyle = `rgba(255,255,255,${game.hitFlash / 10 * 0.8})`;
     ctx.fillRect(0, 0, W, H);
   }
+
+  if (game.mode === 'secret') drawGlitchFx();
 
   // score HUD update
   hiEl.textContent = pad(game.mode === 'daily' ? game.dailyBest : game.hi);
