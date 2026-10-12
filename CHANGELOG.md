@@ -49,6 +49,7 @@ project uses [Semantic Versioning](https://semver.org/).
   the screen, shows a "!" and drops something on the runner. One at a time, slow and visible, and dodgeable: duck if it comes
   at head height, jump if it comes low. A hit costs a heart; shields,
   lightning and giant mode splat it harmlessly. Never in the hidden level.
+- Page title is now "Pixel Run: Free Pixel-Art Runner | Arcade Hub" (45 characters, with the Arcade Hub suffix).
 - Search-friendly page (from Google's SEO starter guide): a canonical link, social
   card tags with an image description, schema.org `WebApplication`/`VideoGame`
   markup (no ratings or reviews, on purpose), and a visible "About Pixel Run"

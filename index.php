@@ -147,7 +147,7 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <base href="<?= h($baseDir) ?>">
-<title>Pixel Run — Free Pixel-Art Endless Runner</title>
+<title>Pixel Run: Free Pixel-Art Runner | Arcade Hub</title>
 <meta name="description" content="Dodge cacti, duck birds and beat the daily course in this funny pixel-art runner. Pick from four heroes, unlock more and climb the leaderboard. Free.">
 <link rel="canonical" href="<?= h($publicUrl) ?>">
 <meta name="theme-color" content="#0d0221">
