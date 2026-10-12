@@ -1852,7 +1852,7 @@ function startGame() {
 }
 
 // Score thresholds for the game-over medal.
-const MEDALS = { copper: 100, bronze: 200, silver: 900, gold: 1500, platinum: 3000 };
+const MEDALS = { copper: 200, bronze: 600, silver: 1500, gold: 3000, platinum: 5000 };
 
 function gameOver() {
   game.state = 'over';

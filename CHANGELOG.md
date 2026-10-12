@@ -7,9 +7,9 @@ project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- Two new medal tiers on the game-over screen: **Copper** (100 points, below
-  Bronze) and **Platinum** (3000 points, above Gold). The tiers are now
-  Copper 100, Bronze 200, Silver 900, Gold 1500, Platinum 3000.
+- Two new medal tiers on the game-over screen: **Copper** (200 points, below
+  Bronze) and **Platinum** (5000 points, above Gold). The tiers are now
+  Copper 200, Bronze 600, Silver 1500, Gold 3000, Platinum 5000.
 - A hidden level. It is not listed anywhere in the interface: it has to be
   found. It plays a fixed course at one steady pace with no pickups, records
   nothing to the leaderboard, the best score, the unlocks or `arcade.stats`,
