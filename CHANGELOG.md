@@ -49,6 +49,11 @@ project uses [Semantic Versioning](https://semver.org/).
   the screen, shows a "!" and drops something on the runner. One at a time, slow and visible, and dodgeable: duck if it comes
   at head height, jump if it comes low. A hit costs a heart; shields,
   lightning and giant mode splat it harmlessly. Never in the hidden level.
+- Search-friendly page (from Google's SEO starter guide): a canonical link, social
+  card tags with an image description, schema.org `WebApplication`/`VideoGame`
+  markup (no ratings or reviews, on purpose), and a visible "About Pixel Run"
+  text section under the game (what it is, how to play, power-ups, heroes) so
+  the page has real, crawlable text and a proper heading outline.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 

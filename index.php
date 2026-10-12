@@ -149,15 +149,44 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
 <base href="<?= h($baseDir) ?>">
 <title>Pixel Run — Free Pixel-Art Endless Runner</title>
 <meta name="description" content="Dodge cacti, duck birds and beat the daily course in this funny pixel-art runner. Pick from four heroes, unlock more and climb the leaderboard. Free.">
+<link rel="canonical" href="<?= h($publicUrl) ?>">
 <meta name="theme-color" content="#0d0221">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Pixel Run">
 <meta property="og:title" content="Pixel Run: Pick a hero. Outrun the desert.">
 <meta property="og:description" content="Dodge cacti, duck birds and beat the daily course with Eeny, Meeny, Miny or Moe.">
 <meta property="og:url" content="<?= h($publicUrl) ?>">
 <meta property="og:image" content="<?= h($publicUrl) ?>assets/img/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pixel Run: a pixel-art dino running across a desert at sunset">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pixel Run: Pick a hero. Outrun the desert.">
+<meta name="twitter:description" content="Dodge cacti, duck birds and beat the daily course with Eeny, Meeny, Miny or Moe.">
+<meta name="twitter:image" content="<?= h($publicUrl) ?>assets/img/og.png">
+<?php
+// Structured data (schema.org) so search engines know this is a free browser game.
+// No ratings or reviews on purpose: those must come from real players, so Google's
+// Software App rich result (which needs them) is not claimed.
+$ldGame = [
+    '@context'            => 'https://schema.org',
+    '@type'               => ['WebApplication', 'VideoGame'],
+    'name'                => 'Pixel Run',
+    'url'                 => $publicUrl,
+    'description'         => 'Dodge cacti, duck birds and outrun the desert with five hearts in this funny pixel-art runner. Grab bombs, shields and mystery gifts, and race the daily course. Free.',
+    'image'               => $publicUrl . 'assets/img/og.png',
+    'applicationCategory' => 'GameApplication',
+    'operatingSystem'     => 'Any (runs in a web browser)',
+    'browserRequirements' => 'Requires JavaScript',
+    'genre'               => ['Endless runner', 'Arcade'],
+    'playMode'            => 'SinglePlayer',
+    'gamePlatform'        => 'Web browser',
+    'inLanguage'          => 'en',
+    'isAccessibleForFree' => true,
+    'offers'              => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'USD'],
+];
+?>
+<script type="application/ld+json"><?= json_encode($ldGame, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -354,6 +383,17 @@ $publicUrl = rtrim($publicUrl, '/') . '/';
     <span><strong class="accent-life"><span class="pu-icon">❤️</span> HEART</strong> +1 life</span>
     <span><strong class="accent-mystery"><span class="pu-icon">🎁</span> GOLD</strong> surprise</span>
   </div>
+
+  <section class="about" aria-labelledby="about-title">
+    <h2 id="about-title">About Pixel Run</h2>
+    <p>Pixel Run is a free pixel-art endless runner you play in your browser. Sprint across a desert that drifts from dawn to a starlit night, jump the cacti and duck the birds as the pace climbs. You get five hearts, so one mistake does not end the run.</p>
+    <h2>How to play</h2>
+    <p>Press Space or the up arrow to jump (hold for a higher jump) and the down arrow to duck. On a phone or tablet, use the on-screen buttons or tap the game. Press P to pause.</p>
+    <h2>Power-ups and surprises</h2>
+    <p>Gifts float along the road: a bomb clears the screen, a shield smashes what you touch, slow-mo eases the road, a heart wins back a life, and a gold gift is a random surprise, from a cactus party to lightning speed to a ride on Hamilton the bird.</p>
+    <h2>Four heroes</h2>
+    <p>Eeny the dino is balanced, Meeny the cat jumps higher, Miny the penguin glides and Moe the bot starts with a shield. Unlock more heroes and their stories by raising your best score, race the daily challenge, and earn medals from Copper to Platinum.</p>
+  </section>
 
   <p class="footer-mark">DNS_PROBE_FINISHED_NO_INTERNET</p>
 </div>
