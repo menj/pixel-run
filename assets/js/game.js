@@ -1511,7 +1511,8 @@ function glitchCleared() {
   setFace('happy', 120);
   game.flashCD = 40;
   ovTitle.textContent = 'ZONE CLEARED';
-  ovSub.innerHTML = `Time <span class="accent-gold">${secs(ms)}</span> · best ${secs(best)}`
+  ovSub.innerHTML = `Time <span class="accent-gold">${secs(ms)}</span>`
+    + (game.cheated && !rec.bestMs ? '' : ` · best ${secs(game.cheated ? rec.bestMs : best)}`)
     + (first && !game.cheated ? '<br><span class="accent-gold">The Glitch is a little less lonely.</span>' : '')
     + `<br>${glitchKeys()}`;
   overlay.classList.add('is-over');
