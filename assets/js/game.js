@@ -189,6 +189,11 @@ const SFX = {
     tone({ freq: 660, freqEnd: 220, dur: 0.28, type: 'triangle', vol: 0.06 });
     tone({ freq: 330, freqEnd: 110, dur: 0.30, type: 'sine',     vol: 0.05, delay: 0.04 });
   },
+  // Mystery gift: a bright four-note run with a little wobble on top.
+  mystery:   () => {
+    [523, 659, 784, 1047].forEach((f, i) => tone({ freq: f, dur: 0.09, type: 'square', vol: 0.04, delay: i * 0.05 }));
+    tone({ freq: 1568, freqEnd: 1175, dur: 0.2, type: 'triangle', vol: 0.04, delay: 0.22 });
+  },
   // Two-note ding for every 100-point milestone.
   milestone: () => {
     tone({ freq: 880,  dur: 0.07, type: 'square',   vol: 0.04 });
@@ -246,6 +251,13 @@ const game = {
   shieldMax: 540,     // ~9s of shield at 60fps
   slowT: 0,           // slow-mo ticks remaining
   slowMax: 360,       // ~6s of slow-mo at 60fps
+  witherT: 0,         // mystery gift: cacti wilt as they come on screen
+  boomT: 0,           // mystery gift: birds explode as they come on screen
+  partyT: 0,          // mystery gift: cacti turn into harmless dancers
+  hasteT: 0,          // mystery gift: speedster mode
+  moonT: 0,           // mystery gift: low gravity
+  chatCD: 0,          // spacing between lines said by obstacles
+  mysteryLast: '',    // last surprise, so it never repeats back to back
   bombFlash: 0,       // screen flash from bomb pickup
   flashCD: 0,         // gold milestone flash
   hitFlash: 0,        // white flash on collision
@@ -498,6 +510,51 @@ const QUIPS = {
   shield:    ['SHINY!', 'BUBBLE TIME', 'BRING IT', 'UNTOUCHABLE'],
   slow:      ['SLOW-MO!', 'MATRIX MODE', 'CHILL.', 'TIME OUT'],
   milestone: ['LOOK AT ME GO', 'NICE!', 'ZOOM!', 'UNSTOPPABLE'],
+  // What each character says about a gift (second line, above the gift's own
+  // quip). Every gift has one so the pickup lands as a joke, not just a buff.
+  react: {
+    bomb: {
+      dino: ['WAS THAT ME?!', 'RAWR-BOOM!'], cat: ['I MEANT TO DO THAT', 'PURR-FECT'],
+      penguin: ['NOOT?!', 'HONK-A-BOOM'], robot: ['DETONATION: OK', 'LOUD.EXE'],
+    },
+    shield: {
+      dino: ['BUBBLE BOY', 'SO FANCY'], cat: ['NOT A TOY!', 'HUMANS NEED NOT APPLY'],
+      penguin: ['ICE BUBBLE!', 'HONK-PROOF'], robot: ['FIREWALL: UP', 'ANTIVIRUS ACTIVE'],
+    },
+    slow: {
+      dino: ['SO... SLOW...', 'WHY IS EVERYTHING GOOPY'], cat: ['ZOOMIES: PAUSED', 'I SEE EVERYTHING'],
+      penguin: ['WADDLING INTENSIFIES', 'WHAT IS TIME?'], robot: ['LAG DETECTED', 'FRAME RATE: LOL'],
+    },
+    wither: {
+      dino: ['OOPS. MY BAD', 'CACTI: 0, ME: 1'], cat: ['NOT MY FAULT', 'I DID NOT TOUCH THEM'],
+      penguin: ['SORRY, PLANTS', 'TOO MUCH SUN?'], robot: ['SOIL MOISTURE: 0%', 'WATER NOT FOUND'],
+    },
+    birds: {
+      dino: ['BIRD BARBECUE!', 'EXTRA CRISPY'], cat: ['...SNACK?', 'FEATHERS EVERYWHERE'],
+      penguin: ['MY PEOPLE?!', 'WE ARE NOT RELATED'], robot: ['PEST CONTROL', 'FLOCK DELETED'],
+    },
+    haste: {
+      dino: ['GOTTA GO FAST', 'ZOOOOM!'], cat: ['ZOOMIES!!!', 'CATCH ME'],
+      penguin: ['WHEEE-HONK!', 'SLIDING AT MACH 3'], robot: ['OVERCLOCKED!', 'CPU: 400%'],
+    },
+    party: {
+      dino: ['CACTI CAN DANCE?!', 'WAIT, I WANT IN'], cat: ['I WAS NOT INVITED', 'TOO COOL FOR THIS'],
+      penguin: ['CAN I JOIN?', 'THEY HAVE HATS'], robot: ['SOCIAL PROTOCOL?', 'DOES NOT COMPUTE'],
+    },
+    moon: {
+      dino: ['SO FLOATY', 'I AM A BALLOON'], cat: ['HAIRBALL IN SPACE', 'ZERO-G NAP'],
+      penguin: ['FINALLY, FLYING!', 'I WAS RIGHT'], robot: ['GRAVITY: 60%', 'ONE SMALL STEP'],
+    },
+    jackpot: {
+      dino: ['CHA-CHING!', 'I AM RICH'], cat: ['TREATS FOR ALL', 'PURR-OFIT'],
+      penguin: ['FISH FOR EVERYONE', 'HONK HONK $$$'], robot: ['PAYOUT DETECTED', '$$$.EXE'],
+    },
+  },
+  // The obstacles have opinions about it too.
+  cactusWither: ['*SIGH*', 'TELL MY MOM...', 'IT WAS THE SUN', 'NOT LIKE THIS', 'I NEEDED WATER'],
+  cactusParty:  ['WOOO!', 'PARTY!', 'IGNORE HIM', 'DJ, DROP IT', 'NEW HAT!'],
+  birdBoom:     ['BYE!', 'TELL MY WIFE', 'NOT AGAIN', 'AAAAA!', 'WHY ME'],
+  haste:        ['*WHEEZE*', 'NEED... WATER...', 'MY LEGS', 'NEVER AGAIN'],
 };
 function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 
@@ -519,6 +576,16 @@ function reactHit() {
   impacts.push({ x: dino.x + 47, y: dino.y + 16, t: 0 });
   const h = headPos();
   quip(pick(QUIPS.hit[game.character] || QUIPS.hit.dino), h.x - 4, h.y - 12, '#FFFFFF', 13);
+}
+// The character's own take on a gift: an expression plus a line of dialogue.
+function reactGift(kind, face) {
+  setFace(face || 'wide', 70);
+  const byChar = QUIPS.react[kind];
+  const lines = byChar && (byChar[game.character] || byChar.dino);
+  if (lines) {
+    const h = headPos();
+    quip(pick(lines), h.x - 4, h.y - 30, '#FFFFFF', 10);
+  }
 }
 function reactNearMiss() {
   setFace('wide', 45);
@@ -762,15 +829,71 @@ function makeCactus() {
   };
 }
 
-function drawCactus(o) {
+function drawCactusBody(o, y) {
   const c = SPR.normal.cactus;
   if (o.type === 'cactus_small') {
     for (let i = 0; i < o.cluster; i++) {
-      blit(i === 0 ? c.small : c.smallPlain, o.x + i * 16, o.y);
+      blit(i === 0 ? c.small : c.smallPlain, o.x + i * 16, y);
     }
     return;
   }
-  blit(c.big, o.x, o.y);
+  blit(c.big, o.x, y);
+}
+
+function drawCactus(o) {
+  if (o.dying) {
+    // withering: droops sideways, shrinks into the sand and fades
+    const t = o.dying / WITHER_TICKS;
+    const cx = o.x + o.w / 2;
+    ctx.save();
+    ctx.globalAlpha = 1 - t * 0.8;
+    ctx.translate(cx, GROUND_Y);
+    ctx.transform(1, 0, 0.45 * t, 1 - 0.85 * t, 0, 0);
+    ctx.translate(-cx, -GROUND_Y);
+    drawCactusBody(o, o.y);
+    ctx.restore();
+    return;
+  }
+  if (o.party) { drawPartyCactus(o); return; }
+  drawCactusBody(o, o.y);
+}
+
+// A cactus that has stood up, grown a face and arms, and is dancing.
+function partyUnits(o) {
+  if (o.type !== 'cactus_small') return [{ x: o.x + o.w / 2, w: o.w }];
+  const out = [];
+  for (let i = 0; i < o.cluster; i++) out.push({ x: o.x + i * 16 + 8, w: 16 });
+  return out;
+}
+
+const PARTY_COLORS = ['#FF3CAC', '#FFD700', '#48CAE4', '#6BE675'];
+
+function drawPartyCactus(o) {
+  const beat = game.tick * 0.22 + o.x * 0.05;
+  const y = o.y - Math.abs(Math.sin(beat)) * 9;
+  drawCactusBody(o, y);
+  partyUnits(o).forEach((u, i) => {
+    const up = Math.sin(beat + i) > 0;
+    const cx = Math.round(u.x);
+    const cy = Math.round(y);
+    ctx.fillStyle = '#3FA34D';
+    ctx.fillRect(cx - u.w / 2 - 3, cy + (up ? 8 : 18), 3, 8);       // arms: one up, one down, swapping
+    ctx.fillRect(cx + u.w / 2,     cy + (up ? 18 : 8), 3, 8);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(cx - 5, cy + 10, 4, 4);                              // eyes
+    ctx.fillRect(cx + 1, cy + 10, 4, 4);
+    ctx.fillStyle = '#2A0A44';
+    ctx.fillRect(cx - 3, cy + 12, 2, 2);
+    ctx.fillRect(cx + 3, cy + 12, 2, 2);
+    ctx.fillStyle = '#C9184A';
+    ctx.fillRect(cx - 4, cy + 18, 8, 2);                              // grin
+    ctx.fillRect(cx - 5, cy + 17, 1, 1);
+    ctx.fillRect(cx + 4, cy + 17, 1, 1);
+    ctx.fillStyle = PARTY_COLORS[(i + Math.floor(o.x / 40)) & 3];      // party hat
+    ctx.fillRect(cx - 4, cy - 2, 8, 2);
+    ctx.fillRect(cx - 2, cy - 5, 4, 3);
+    ctx.fillRect(cx - 1, cy - 8, 2, 3);
+  });
 }
 
 /* ---------- obstacles: bird ---------- */
@@ -793,9 +916,9 @@ function drawBird(o) {
 
 /* ---------- pickups: gift boxes ---------- */
 function makeGift() {
-  // 50% bombs, 30% shields, 20% slow-mo — bombs are the headline reward
+  // 40% bombs, 25% shields, 15% slow-mo, 20% mystery — bombs are the headline reward
   const roll = rnd();
-  const kind = roll < 0.5 ? 'bomb' : roll < 0.8 ? 'shield' : 'slow';
+  const kind = roll < 0.4 ? 'bomb' : roll < 0.65 ? 'shield' : roll < 0.8 ? 'slow' : 'mystery';
   // float at jumpable heights so the player has to commit to grab them
   const tier = rnd();
   let y;
@@ -819,6 +942,19 @@ function drawGift(g) {
   const x = Math.round(g.x);
   const y = Math.round(g.y + bob);
   blit(SPR.normal[g.kind].box, x, y);
+  if (g.kind === 'mystery') {
+    ctx.save();
+    ctx.font = '10px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#3A2A00';
+    ctx.fillStyle = '#FFD700';
+    ctx.strokeText('?', x + 9, y - 7);
+    ctx.fillText('?', x + 9, y - 7);
+    ctx.restore();
+  }
 
   // sparkle aura
   const sp = (game.tick + Math.floor(g.bobSeed * 30)) % 40;
@@ -1086,7 +1222,7 @@ function activateBomb() {
   game.score += count * 10; // bonus per nuked obstacle
   game.bombFlash = 22;
   SFX.bomb();
-  setFace('wide', 50);
+  reactGift('bomb', 'wide');
   quip(pick(QUIPS.bomb), headPos().x, headPos().y - 12, '#FF477E', 13);
 }
 
@@ -1094,7 +1230,7 @@ function activateShield() {
   game.shieldT = game.shieldMax;
   spawnSparkle(dino.x + 22, dino.y + 24);
   SFX.shield();
-  setFace('happy', 70);
+  reactGift('shield', 'happy');
   quip(pick(QUIPS.shield), headPos().x, headPos().y - 12, '#48CAE4', 11);
 }
 
@@ -1102,14 +1238,129 @@ function activateSlow() {
   game.slowT = game.slowMax;
   spawnSparkle(dino.x + 22, dino.y + 24);
   SFX.slow();
-  setFace('wide', 50);
+  reactGift('slow', 'closed');
   quip(pick(QUIPS.slow), headPos().x, headPos().y - 12, '#6BE675', 11);
 }
 
 const SLOW_FACTOR = 0.55;   // world speed multiplier while slow-mo is active
+const HASTE_FACTOR = 2.3;   // ...and while the mystery gift makes the dino a speedster
+const MOON_GRAVITY = 0.6;   // gravity multiplier under the mystery gift's low gravity
+const WITHER_TICKS = 60;    // how long a cactus takes to wilt away
+
+// Mystery gift: one random surprise, never the same twice in a row. It uses
+// Math.random on purpose: pickup timing varies, and drawing from the seeded
+// stream here would shift every later spawn of a daily-challenge run.
+const MYSTERY_FX = {
+  wither: { name: 'WITHER!',      color: '#C9A227', start() { game.witherT = 300; } },
+  birds:  { name: 'BIRD BOOM!',   color: '#FF477E', start() { game.boomT = 300; } },
+  haste:  { name: 'LIGHTNING!',   color: '#FFE45E', start() { game.hasteT = 300; } },
+  party:  { name: 'CACTUS PARTY', color: '#FF3CAC', start() { game.partyT = 480; } },
+  moon:   { name: 'MOON JUMP',    color: '#A0E7FF', start() { game.moonT = 600; } },
+  jackpot:{ name: 'JACKPOT +75',  color: '#FFD700', start() {
+    game.score += 75;
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * W, y: -Math.random() * 40,
+        vx: (Math.random() - 0.5) * 1.5, vy: 1.5 + Math.random() * 2.5,
+        life: 70 + Math.random() * 30,
+        color: ['#FFD700', '#FFB703', '#FFFFFF'][Math.floor(Math.random() * 3)],
+        size: 2 + Math.floor(Math.random() * 2),
+      });
+    }
+  } },
+};
+
+function activateMystery() {
+  const keys = Object.keys(MYSTERY_FX).filter((k) => k !== game.mysteryLast);
+  const k = keys[Math.floor(Math.random() * keys.length)];
+  game.mysteryLast = k;
+  const fx = MYSTERY_FX[k];
+  fx.start();
+  spawnSparkle(dino.x + 22, dino.y + 24);
+  SFX.mystery();
+  reactGift(k, k === 'moon' || k === 'jackpot' ? 'happy' : 'wide');
+  quip(fx.name, headPos().x, headPos().y - 12, fx.color, 13);
+}
+
+// Per-tick upkeep for the timed surprises, and the effects that act on obstacles.
+function updateMystery() {
+  const visible = (o) => o.x < W - 10;   // only act on what the player can see
+  if (game.chatCD > 0) game.chatCD--;
+  // an obstacle gets a line of its own, but not on every tick
+  const say = (o, list, color) => {
+    if (game.chatCD > 0) return;
+    game.chatCD = 40;
+    quip(pick(list), o.x + o.w / 2, o.y - 10, color, 9);
+  };
+  if (game.witherT > 0) {
+    game.witherT--;
+    for (const o of obstacles) {
+      if (o.type !== 'bird' && !o.dying && !o.party && visible(o)) { o.dying = 1; say(o, QUIPS.cactusWither, '#C9A227'); }
+    }
+  }
+  if (game.partyT > 0) {
+    game.partyT--;
+    for (const o of obstacles) {
+      if (o.type !== 'bird' && !o.dying && !o.party && visible(o)) { o.party = true; say(o, QUIPS.cactusParty, '#FF3CAC'); }
+    }
+  }
+  if (game.boomT > 0) {
+    game.boomT--;
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i];
+      if (o.type === 'bird' && visible(o)) {
+        say(o, QUIPS.birdBoom, '#FF477E');
+        spawnBigBoom(o.x + o.w / 2, o.y + o.h / 2);
+        obstacles.splice(i, 1);
+        game.score += 15;
+      }
+    }
+  }
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    if (!o.dying) continue;
+    if (game.tick % 4 === 0) {
+      particles.push({
+        x: o.x + Math.random() * o.w, y: GROUND_Y - Math.random() * o.h * (1 - o.dying / WITHER_TICKS),
+        vx: -0.5 - Math.random(), vy: -0.3 - Math.random() * 0.6,
+        life: 25, color: ['#A68A2E', '#7A6A24', '#C9A227'][Math.floor(Math.random() * 3)], size: 2,
+      });
+    }
+    if (++o.dying >= WITHER_TICKS) { obstacles.splice(i, 1); game.score += 5; }
+  }
+  if (game.partyT > 0 && game.tick % 6 === 0) {
+    const dancers = obstacles.filter((o) => o.party);
+    if (dancers.length) {
+      const o = dancers[Math.floor(Math.random() * dancers.length)];
+      particles.push({
+        x: o.x + Math.random() * o.w, y: o.y - 8,
+        vx: (Math.random() - 0.5) * 2, vy: -1.5 - Math.random() * 1.5,
+        life: 35, color: PARTY_COLORS[Math.floor(Math.random() * 4)], size: 2,
+      });
+    }
+  }
+  if (game.moonT > 0) game.moonT--;
+  if (game.hasteT > 0) {
+    game.hasteT--;
+    // lightning trail
+    particles.push({
+      x: dino.x + Math.random() * 20, y: dino.y + Math.random() * STAND_H,
+      vx: -3 - Math.random() * 3, vy: (Math.random() - 0.5) * 0.8,
+      life: 14, color: ['#FFE45E', '#FFFFFF', '#FFB703'][Math.floor(Math.random() * 3)], size: 2,
+    });
+    // a short grace period so the speedster does not stop inside an obstacle
+    if (game.hasteT === 0) {
+      game.shieldT = Math.max(game.shieldT, 45);
+      // the comedy tax on being The Flash: dizzy, tongue out
+      setFace('x', 90);
+      quip(pick(QUIPS.haste), headPos().x - 2, headPos().y - 12, '#FFE45E', 11);
+    }
+  }
+}
 
 // The world's scroll speed: slow-mo eases everything but the player.
 function worldSpeed() {
+  if (game.hasteT > 0) return game.speed * HASTE_FACTOR;
   return game.slowT > 0 ? game.speed * SLOW_FACTOR : game.speed;
 }
 
@@ -1580,6 +1831,8 @@ function restart() {
   game.giftCD = 360;
   game.shieldT = 0;
   game.slowT = 0;
+  game.witherT = game.boomT = game.partyT = game.hasteT = game.moonT = 0;
+  game.chatCD = 0;
   game.bombFlash = 0;
   game.flashCD = 0;
   game.nextMilestone = 100;
@@ -2087,17 +2340,18 @@ function update() {
 
   // score (in the Glitch Zone the score is simply how many obstacles are behind you)
   if (game.mode === 'secret') game.score = game.cleared;
-  else if (game.tick % 6 === 0) game.score++;
+  else if (game.tick % (game.hasteT > 0 ? 2 : 6) === 0) game.score++;
 
   // dino physics
   if (dino.squash > 0) dino.squash--;
   if (dino.jumping) {
     const gliding = trait().glide && dino.jumpHeld && dino.vy > 0;
-    dino.vy += gliding ? GLIDE_G : GRAVITY;
+    dino.vy += gliding ? GLIDE_G : GRAVITY * (game.moonT > 0 ? MOON_GRAVITY : 1);
     if (gliding && dino.vy > GLIDE_MAX_FALL) dino.vy = GLIDE_MAX_FALL;
     // variable jump height: letting go early stops the climb sooner
     if (!dino.jumpHeld && dino.vy < JUMP_CUT_V) dino.vy = JUMP_CUT_V;
     dino.y += dino.vy;
+    if (dino.y < 4) { dino.y = 4; if (dino.vy < 0) dino.vy = 0; }   // moon jump: stay on screen
     if (dino.y >= GROUND_Y - STAND_H) {
       dino.y = GROUND_Y - STAND_H;
       dino.vy = 0;
@@ -2167,6 +2421,7 @@ function update() {
     if (rectsOverlap(db2, gb)) {
       if (g.kind === 'bomb') activateBomb();
       else if (g.kind === 'slow') activateSlow();
+      else if (g.kind === 'mystery') activateMystery();
       else activateShield();
       gifts.splice(i, 1);
       continue;
@@ -2190,23 +2445,26 @@ function update() {
     if (s.x < 0) s.x = W;
   }
 
+  updateMystery();
+
   // collision
   const db = dinoBox();
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
+    if (o.dying || o.party) continue;   // wilted or dancing: harmless
     if (rectsOverlap(db, obsBox(o))) {
-      if (game.shieldT > 0) {
+      if (game.shieldT > 0 || game.hasteT > 0) {
         // shield shatters the obstacle, dino keeps running
         spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
         obstacles.splice(i, 1);
-        game.score += 5;
+        game.score += game.hasteT > 0 ? 10 : 5;
       } else if (game.god) {
         game.cheated = true;   // admin god mode: pass straight through
       } else {
         gameOver();
         break;
       }
-    } else if (game.nearCD <= 0 && !o.near && game.shieldT <= 0 && !game.god) {
+    } else if (game.nearCD <= 0 && !o.near && game.shieldT <= 0 && game.hasteT <= 0 && !game.god) {
       // close call: overlapping horizontally with a few units of clearance
       const ob = obsBox(o);
       if (db.x < ob.x + ob.w && db.x + db.w > ob.x) {
@@ -2344,10 +2602,38 @@ function render() {
     ctx.fillRect(dino.x - 6, ty, 60 * (game.slowT / game.slowMax), 4);
   }
 
+  // timer bar for the mystery gift's timed surprises (gold)
+  const timed = [[game.hasteT, 300], [game.partyT, 480], [game.moonT, 600], [game.witherT, 300], [game.boomT, 300]]
+    .reduce((best, p) => (p[0] / p[1] > best[0] / best[1] ? p : best), [0, 1]);
+  if (timed[0] > 0) {
+    const ducked = dino.ducking && !dino.jumping;
+    const stack = (game.shieldT > 0 ? 1 : 0) + (game.slowT > 0 ? 1 : 0);
+    const ty = (ducked ? GROUND_Y - DUCK_H : dino.y) - 12 - stack * 8;
+    ctx.fillStyle = 'rgba(13,2,33,0.6)';
+    ctx.fillRect(dino.x - 6, ty, 60, 4);
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(dino.x - 6, ty, 60 * (timed[0] / timed[1]), 4);
+  }
+
   drawParticles();
   drawImpacts();
   drawQuips();
   ctx.restore();
+
+  // speedster: warm tint and streaking speed lines
+  if (game.hasteT > 0) {
+    ctx.fillStyle = 'rgba(255,228,94,0.08)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (let i = 0; i < 10; i++) {
+      ctx.fillRect(Math.random() * W, Math.random() * GROUND_Y, 40 + Math.random() * 80, 1);
+    }
+  }
+  // party: a slow disco colour wash
+  if (game.partyT > 0) {
+    ctx.fillStyle = `hsla(${(game.tick * 5) % 360},100%,60%,0.07)`;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // slow-mo tint
   if (game.slowT > 0) {

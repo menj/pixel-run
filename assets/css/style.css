@@ -27,6 +27,7 @@
   .accent-bomb   { color: #FF477E; }
   .accent-shield { color: #48CAE4; }
   .accent-slow   { color: #6BE675; }
+  .accent-mystery{ color: #FFD700; }
 
   html, body {
     min-height: 100%;
@@ -652,6 +653,7 @@
   .controls span strong.accent-bomb   { color: #FF477E; }
   .controls span strong.accent-shield { color: #48CAE4; }
   .controls span strong.accent-slow   { color: #6BE675; }
+  .controls span strong.accent-mystery{ color: #FFD700; }
 
   .pulse {
     animation: pulse 1.6s ease-in-out infinite;

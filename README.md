@@ -408,3 +408,10 @@ TRUNCATE TABLE pixel_run.scores;
 ```bash
 mysqldump -u root -p pixel_run scores > scores-backup.sql
 ```
+
+## Gifts
+
+Gift boxes float along the road: PINK bomb (clears the screen), BLUE shield,
+GREEN slow-mo and GOLD surprise. The surprise is one random effect from
+`MYSTERY_FX` in `assets/js/game.js` (wither, bird boom, lightning, cactus party,
+moon jump, jackpot). Reaction lines for each character are in `QUIPS.react`.

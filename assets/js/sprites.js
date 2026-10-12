@@ -534,6 +534,7 @@
   ];
   var BOMB_PALETTE   = { b: '#FF477E', r: '#FFD700', k: '#C9184A', '#': '#3A0A1A' };
   var SHIELD_PALETTE = { b: '#48CAE4', r: '#FFFFFF', k: '#06A0B8', '#': '#08313A' };
+  var MYSTERY_PALETTE = { b: '#FFD700', r: '#FF3CAC', k: '#C99700', '#': '#3A2A00' };
   var SLOW_PALETTE   = { b: '#6BE675', r: '#FFFFFF', k: '#2FB344', '#': '#0B3A14' };
 
   /* ---------- helpers ---------- */
@@ -629,6 +630,7 @@
     bomb:   { palette: BOMB_PALETTE,   frames: { box: GIFT } },
     shield: { palette: SHIELD_PALETTE, frames: { box: GIFT } },
     slow:   { palette: SLOW_PALETTE,   frames: { box: GIFT } },
+    mystery:{ palette: MYSTERY_PALETTE,frames: { box: GIFT } },
   };
 
   /* ---------- refinement: more detail, smoother edges, light and shade ----------
