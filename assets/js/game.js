@@ -1333,6 +1333,7 @@ function activateBomb() {
   // shockwave from dino too
   spawnBigBoom(dino.x + 22, dino.y + 22);
   obstacles.length = 0;
+  killBomber();
   game.bombFlash = 22;
   SFX.bomb();
   reactGift('bomb', 'wide');
@@ -1494,6 +1495,20 @@ function updateBomber() {
     }
   }
 }
+// A bomb (or the bird-boom surprise) takes the bomber bird down too, and any
+// dropping already in the air splats harmlessly. Scores like any bird.
+function killBomber() {
+  const b = game.bomber;
+  if (b && b.x < W) {
+    spawnBigBoom(b.x + 18, b.y + 12);
+    award({ type: 'bird', x: b.x, y: b.y, w: 36, h: 24 });
+    quip(pick(QUIPS.birdBoom), b.x + 18, b.y + 30, '#FF477E', 10);
+    game.bomber = null;
+    game.bomberCD = 3600 + Math.floor(bomberRnd() * 1800);   // the same wait as after a normal flight
+  }
+  for (const p of poops) spawnDropping(p.x, p.y, 8);
+  poops.length = 0;
+}
 function spawnDropping(x, y, n) {
   for (let i = 0; i < n; i++) {
     particles.push({
@@ -1562,6 +1577,7 @@ function updateMystery() {
   }
   if (game.boomT > 0) {
     game.boomT--;
+    killBomber();
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
       if (o.type === 'bird' && visible(o)) {
