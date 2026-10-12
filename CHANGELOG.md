@@ -13,6 +13,9 @@ project uses [Semantic Versioning](https://semver.org/).
   found. It plays a fixed course, records nothing to the leaderboard or the
   best score, and keeps its own best time on the device.
 
+- A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
+  reaching down on the way back. Looks only: the hitbox is unchanged.
+
 ### Fixed
 - The ONLINE / OFFLINE button did nothing: a second function named `setMode`
   (the daily-challenge toggle) shadowed the one that switches the server

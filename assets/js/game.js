@@ -717,7 +717,8 @@ function drawPlayer() {
     return;
   }
   let f;
-  if (game.state !== 'running' || dino.jumping) f = frames.stand;
+  if (game.state === 'running' && dino.jumping && frames.jumpUp) f = dino.vy < 0 ? frames.jumpUp : frames.jumpDown;   // legs spread in the air (looks only: the hitbox never changes)
+  else if (game.state !== 'running' || dino.jumping) f = frames.stand;
   else f = phaseA ? frames.runA : frames.runB;
   const bob = game.state === 'idle' ? Math.round(Math.sin(game.tick / 12) * 3) : 0;
   let sx = 1, sy = 1;
