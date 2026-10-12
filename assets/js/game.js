@@ -1279,15 +1279,22 @@ function spawnSparkle(x, y) {
   }
 }
 
+// Points for destroying an obstacle, with a floating "+N" so it is visible.
+// Every way of destroying one goes through here, so they all pay the same.
+function award(o) {
+  const pts = o.type === 'bird' ? 15 : 10;
+  game.score += pts;
+  quip('+' + pts, o.x + o.w / 2, o.y - 4, '#FFD700', 9);
+}
+
 function activateBomb() {
-  const count = obstacles.length;
   for (const o of obstacles) {
     spawnBigBoom(o.x + o.w / 2, o.y + o.h / 2);
+    award(o);
   }
   // shockwave from dino too
   spawnBigBoom(dino.x + 22, dino.y + 22);
   obstacles.length = 0;
-  game.score += count * 10; // bonus per nuked obstacle
   game.bombFlash = 22;
   SFX.bomb();
   reactGift('bomb', 'wide');
@@ -1375,7 +1382,7 @@ function updateMystery() {
   if (game.witherT > 0) {
     game.witherT--;
     for (const o of obstacles) {
-      if (o.type !== 'bird' && !o.dying && !o.party && visible(o)) { o.dying = 1; say(o, QUIPS.cactusWither, '#C9A227'); }
+      if (o.type !== 'bird' && !o.dying && !o.party && visible(o)) { o.dying = 1; award(o); say(o, QUIPS.cactusWither, '#C9A227'); }
     }
   }
   if (game.partyT > 0) {
@@ -1392,7 +1399,7 @@ function updateMystery() {
         say(o, QUIPS.birdBoom, '#FF477E');
         spawnBigBoom(o.x + o.w / 2, o.y + o.h / 2);
         obstacles.splice(i, 1);
-        game.score += 15;
+        award(o);
       }
     }
   }
@@ -1414,7 +1421,7 @@ function updateMystery() {
         life: 25, color: o.fire ? FLAME_COLORS[Math.floor(Math.random() * 5)] : ['#A68A2E', '#7A6A24', '#C9A227'][Math.floor(Math.random() * 3)], size: o.fire ? 3 : 2,
       });
     }
-    if (++o.dying >= WITHER_TICKS) { obstacles.splice(i, 1); game.score += 5; }
+    if (++o.dying >= WITHER_TICKS) obstacles.splice(i, 1);
   }
   if (game.partyT > 0 && game.tick % 6 === 0) {
     const dancers = obstacles.filter((o) => o.party);
@@ -1469,7 +1476,7 @@ function updateMystery() {
       for (const o of obstacles) {
         if (o.x > dino.x + 20 && !o.fling && !o.dying) {
           o.fling = { vx: 10 + Math.random() * 8, vy: -7 - Math.random() * 5, rot: 0, vrot: (Math.random() - 0.5) * 0.6 };
-          game.score += 10;
+          award(o);
         }
       }
     }
@@ -2617,14 +2624,14 @@ function update() {
           // the speedster is on fire: whatever it runs through burns down
           o.dying = 1;
           o.fire = true;
-          game.score += 10;
+          award(o);
           spawnFire(o.x + o.w / 2, o.y + o.h / 2, 16);
           if (game.chatCD <= 0) { game.chatCD = 40; quip(pick(QUIPS.cactusBurn), o.x + o.w / 2, o.y - 10, '#FF8C00', 9); }
         } else if (game.giantT > 0 && o.type !== 'bird') {
           // stomped flat like a pancake
           o.dying = 1;
           o.stomp = true;
-          game.score += 10;
+          award(o);
           game.shake = Math.max(game.shake, 9);
           spawnDust(o.x + o.w / 2, GROUND_Y - 4);
           if (game.chatCD <= 0) { game.chatCD = 40; quip(pick(QUIPS.stomp), o.x + o.w / 2, o.y - 10, '#FF8C00', 10); }
@@ -2632,7 +2639,7 @@ function update() {
           // shield shatters the obstacle, dino keeps running
           spawnExplosion(o.x + o.w / 2, o.y + o.h / 2);
           obstacles.splice(i, 1);
-          game.score += game.hasteT > 0 ? 10 : 5;
+          award(o);
         }
       } else if (game.god) {
         game.cheated = true;   // admin god mode: pass straight through

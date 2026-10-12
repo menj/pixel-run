@@ -22,6 +22,10 @@ project uses [Semantic Versioning](https://semver.org/).
   mode (invulnerable, leaves a burning trail and sets every cactus it passes through ablaze; the dino ends up dizzy and wheezing), cacti stand up and throw a
   **party** while ignoring you, **moon jump** low gravity, **giant mode** (stomps cacti flat, ground-shaking footsteps), **bird taxi** (a bird carries you over everything), a delayed **sneeze** that blows every obstacle ahead off the road, or a **jackpot**
   of +75 points. Characters have their own lines for every gift.
+- Destroying obstacles now always scores, with a floating "+10" (cactus) or
+  "+15" (bird) popup: shield smash, bomb, burn, stomp, wither, bird boom and
+  sneeze all pay the same. Cacti that only dance in the party stay alive and
+  score nothing.
 - A jump pose for Eeny (dino) and Meeny (cat): legs thrown wide on the way up,
   reaching down on the way back. Looks only: the hitbox is unchanged.
 
